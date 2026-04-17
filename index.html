@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>物流管理系统</title>
+    <title>恒冰物流运营管理系统</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -11,45 +11,47 @@
     <style>
         * { box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-        .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
         .card { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .btn-primary { background: #3b82f6; color: white; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; }
         .btn-primary:hover { background: #2563eb; }
         .btn-secondary { background: #6b7280; color: white; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; }
-        .btn-secondary:hover { background: #4b5563; }
         .btn-success { background: #10b981; color: white; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; }
-        .btn-success:hover { background: #059669; }
         .btn-danger { background: #ef4444; color: white; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; }
-        .btn-danger:hover { background: #dc2626; }
-        .status-pending { background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-        .status-transit { background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-        .status-delivered { background: #d1fae5; color: #065f46; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-        .status-cancelled { background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
-        th { background: #f9fafb; font-weight: 600; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+        th { background: #f9fafb; font-weight: 600; position: sticky; top: 0; }
         tr:hover { background: #f9fafb; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
-        .modal-content { background: white; margin: 50px auto; padding: 24px; width: 90%; max-width: 600px; border-radius: 8px; }
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; margin-bottom: 4px; font-weight: 500; }
-        .form-group input, .form-group select { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto; }
+        .modal-content { background: white; margin: 30px auto; padding: 24px; width: 95%; max-width: 1200px; border-radius: 8px; max-height: 90vh; overflow-y: auto; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px; }
+        .form-group input, .form-group select { width: 100%; padding: 6px 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; }
         .hidden { display: none !important; }
+        .section-title { font-size: 14px; font-weight: 600; color: #374151; margin: 16px 0 8px; padding-bottom: 4px; border-bottom: 2px solid #3b82f6; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        .number { font-family: 'Courier New', monospace; }
+        .positive { color: #059669; }
+        .negative { color: #dc2626; }
+        .table-container { overflow-x: auto; max-height: 70vh; }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <div class="flex h-screen">
         <!-- 侧边栏 -->
-        <aside class="w-64 bg-gray-900 text-white flex flex-col">
-            <div class="p-6 border-b border-gray-800">
-                <h1 class="text-xl font-bold"><i class="fas fa-truck mr-2"></i>物流管理系统</h1>
+        <aside class="w-56 bg-gray-900 text-white flex flex-col">
+            <div class="p-5 border-b border-gray-800">
+                <h1 class="text-lg font-bold"><i class="fas fa-truck mr-2"></i>恒冰物流系统</h1>
             </div>
-            <nav class="flex-1 p-4">
-                <a href="#" onclick="showTab('dashboard')" id="nav-dashboard" class="block py-3 px-4 rounded-lg mb-2 bg-blue-600">
-                    <i class="fas fa-chart-line mr-2"></i>数据视图
+            <nav class="flex-1 p-3">
+                <a href="#" onclick="showTab('dashboard')" id="nav-dashboard" class="block py-2.5 px-4 rounded-lg mb-1 bg-blue-600 text-sm">
+                    <i class="fas fa-chart-line mr-2"></i>运营概览
                 </a>
-                <a href="#" onclick="showTab('orders')" id="nav-orders" class="block py-3 px-4 rounded-lg mb-2 hover:bg-gray-800">
-                    <i class="fas fa-list mr-2"></i>运单列表
+                <a href="#" onclick="showTab('orders')" id="nav-orders" class="block py-2.5 px-4 rounded-lg mb-1 hover:bg-gray-800 text-sm">
+                    <i class="fas fa-list mr-2"></i>运单汇总
                 </a>
             </nav>
         </aside>
@@ -57,123 +59,121 @@
         <!-- 主内容区 -->
         <main class="flex-1 overflow-auto">
             <!-- 顶部栏 -->
-            <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
-                <h2 id="page-title" class="text-xl font-semibold">数据视图</h2>
-                <div class="flex gap-3">
+            <header class="bg-white shadow-sm px-5 py-3 flex justify-between items-center">
+                <h2 id="page-title" class="text-lg font-semibold">运营概览</h2>
+                <div class="flex gap-2">
                     <input type="file" id="importFile" accept=".xlsx,.xls,.csv" class="hidden" onchange="importData(event)">
-                    <button onclick="document.getElementById('importFile').click()" class="btn-success">
-                        <i class="fas fa-upload mr-1"></i>导入运单
+                    <button onclick="document.getElementById('importFile').click()" class="btn-success text-sm">
+                        <i class="fas fa-upload mr-1"></i>导入
                     </button>
-                    <button onclick="exportData()" class="btn-primary">
-                        <i class="fas fa-download mr-1"></i>导出数据
+                    <button onclick="exportData()" class="btn-primary text-sm">
+                        <i class="fas fa-download mr-1"></i>导出
                     </button>
                 </div>
             </header>
 
-            <!-- 数据视图板块 -->
-            <div id="dashboard-section" class="p-6">
-                <!-- 统计卡片 -->
-                <div class="grid grid-cols-4 gap-6 mb-6">
-                    <div class="card p-6">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-500 text-sm">总运单数</p>
-                                <p id="total-orders" class="text-2xl font-bold">0</p>
-                            </div>
-                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-box text-blue-600"></i>
-                            </div>
-                        </div>
+            <!-- 运营概览板块 -->
+            <div id="dashboard-section" class="p-5">
+                <!-- 核心指标 -->
+                <div class="grid grid-cols-5 gap-4 mb-5">
+                    <div class="card p-4">
+                        <p class="text-gray-500 text-xs">总运单数</p>
+                        <p id="total-orders" class="text-xl font-bold">0</p>
                     </div>
-                    <div class="card p-6">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-500 text-sm">运输中</p>
-                                <p id="transit-orders" class="text-2xl font-bold">0</p>
-                            </div>
-                            <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-shipping-fast text-yellow-600"></i>
-                            </div>
-                        </div>
+                    <div class="card p-4">
+                        <p class="text-gray-500 text-xs">总收入(元)</p>
+                        <p id="total-income" class="text-xl font-bold number">0</p>
                     </div>
-                    <div class="card p-6">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-500 text-sm">已送达</p>
-                                <p id="delivered-orders" class="text-2xl font-bold">0</p>
-                            </div>
-                            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-check-circle text-green-600"></i>
-                            </div>
-                        </div>
+                    <div class="card p-4">
+                        <p class="text-gray-500 text-xs">总成本(元)</p>
+                        <p id="total-cost" class="text-xl font-bold number">0</p>
                     </div>
-                    <div class="card p-6">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-gray-500 text-sm">总运费(元)</p>
-                                <p id="total-freight" class="text-2xl font-bold">0</p>
-                            </div>
-                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                                <i class="fas fa-yen-sign text-purple-600"></i>
-                            </div>
-                        </div>
+                    <div class="card p-4">
+                        <p class="text-gray-500 text-xs">总利润(元)</p>
+                        <p id="total-profit" class="text-xl font-bold number">0</p>
+                    </div>
+                    <div class="card p-4">
+                        <p class="text-gray-500 text-xs">利润率</p>
+                        <p id="profit-rate" class="text-xl font-bold">0%</p>
+                    </div>
+                </div>
+
+                <!-- 成本结构 -->
+                <div class="grid grid-cols-4 gap-4 mb-5">
+                    <div class="card p-4">
+                        <p class="text-gray-500 text-xs">司机运费</p>
+                        <p id="total-driver-fee" class="text-lg font-bold number">0</p>
+                    </div>
+                    <div class="card p-4">
+                        <p class="text-gray-500 text-xs">电补</p>
+                        <p id="total-electric" class="text-lg font-bold number">0</p>
+                    </div>
+                    <div class="card p-4">
+                        <p class="text-gray-500 text-xs">高速费</p>
+                        <p id="total-toll" class="text-lg font-bold number">0</p>
+                    </div>
+                    <div class="card p-4">
+                        <p class="text-gray-500 text-xs">车租</p>
+                        <p id="total-rent" class="text-lg font-bold number">0</p>
                     </div>
                 </div>
 
                 <!-- 图表 -->
-                <div class="grid grid-cols-2 gap-6">
-                    <div class="card p-6">
-                        <h3 class="font-semibold mb-4">运单状态分布</h3>
-                        <canvas id="statusChart"></canvas>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="card p-4">
+                        <h3 class="font-semibold mb-3 text-sm">收入与利润趋势</h3>
+                        <canvas id="incomeChart" height="200"></canvas>
                     </div>
-                    <div class="card p-6">
-                        <h3 class="font-semibold mb-4">近7天运单趋势</h3>
-                        <canvas id="trendChart"></canvas>
+                    <div class="card p-4">
+                        <h3 class="font-semibold mb-3 text-sm">成本结构占比</h3>
+                        <canvas id="costChart" height="200"></canvas>
                     </div>
                 </div>
             </div>
 
-            <!-- 运单列表板块 -->
-            <div id="orders-section" class="p-6 hidden">
+            <!-- 运单汇总板块 -->
+            <div id="orders-section" class="p-5 hidden">
                 <div class="card">
-                    <div class="p-4 border-b flex justify-between items-center">
-                        <div class="flex gap-4">
-                            <input type="text" id="searchInput" placeholder="搜索运单号/收件人/电话" 
-                                   class="px-4 py-2 border rounded-lg w-64" onkeyup="searchOrders()">
-                            <select id="statusFilter" onchange="filterOrders()" class="px-4 py-2 border rounded-lg">
-                                <option value="">全部状态</option>
-                                <option value="待发货">待发货</option>
-                                <option value="运输中">运输中</option>
-                                <option value="已送达">已送达</option>
-                                <option value="已取消">已取消</option>
-                            </select>
+                    <div class="p-3 border-b flex justify-between items-center">
+                        <div class="flex gap-3">
+                            <input type="text" id="searchInput" placeholder="搜索运单号/车牌/驾驶员" 
+                                   class="px-3 py-1.5 border rounded-lg w-56 text-sm" onkeyup="searchOrders()">
+                            <input type="date" id="dateFilter" onchange="filterOrders()" class="px-3 py-1.5 border rounded-lg text-sm">
+                            <input type="text" id="plateFilter" placeholder="车牌号" onkeyup="filterOrders()" class="px-3 py-1.5 border rounded-lg w-32 text-sm">
                         </div>
-                        <button onclick="openModal()" class="btn-primary">
+                        <button onclick="openModal()" class="btn-primary text-sm">
                             <i class="fas fa-plus mr-1"></i>新增运单
                         </button>
                     </div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>运单号</th>
-                                <th>收件人</th>
-                                <th>联系电话</th>
-                                <th>收货地址</th>
-                                <th>货物名称</th>
-                                <th>重量(kg)</th>
-                                <th>运费(元)</th>
-                                <th>状态</th>
-                                <th>下单时间</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ordersTable">
-                            <!-- 动态生成 -->
-                        </tbody>
-                    </table>
-                    <div id="pagination" class="p-4 border-t flex justify-center gap-2">
-                        <!-- 分页 -->
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>序列</th>
+                                    <th>运单号</th>
+                                    <th>日期</th>
+                                    <th>车牌</th>
+                                    <th>驾驶员</th>
+                                    <th>始发地</th>
+                                    <th>出场时间</th>
+                                    <th>经停点1</th>
+                                    <th>到店时间</th>
+                                    <th>总里程</th>
+                                    <th class="text-right">收入</th>
+                                    <th class="text-right">司机运费</th>
+                                    <th class="text-right">电补</th>
+                                    <th class="text-right">高速费</th>
+                                    <th class="text-right">车租</th>
+                                    <th class="text-right">利润</th>
+                                    <th>到店时效</th>
+                                    <th>回单</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ordersTable"></tbody>
+                        </table>
                     </div>
+                    <div id="pagination" class="p-3 border-t flex justify-center gap-2"></div>
                 </div>
             </div>
         </main>
@@ -190,49 +190,179 @@
             </div>
             <form id="orderForm" onsubmit="saveOrder(event)">
                 <input type="hidden" id="orderId">
-                <div class="grid grid-cols-2 gap-4">
+                
+                <div class="section-title">基本信息</div>
+                <div class="grid-4">
+                    <div class="form-group">
+                        <label>序列</label>
+                        <input type="number" id="seq" required>
+                    </div>
                     <div class="form-group">
                         <label>运单号</label>
-                        <input type="text" id="trackingNo" required placeholder="如：YD20250417001">
+                        <input type="text" id="trackingNo" required placeholder="如：SMHB2604000001">
                     </div>
                     <div class="form-group">
-                        <label>收件人</label>
-                        <input type="text" id="recipient" required>
+                        <label>日期</label>
+                        <input type="date" id="date" required>
                     </div>
                     <div class="form-group">
-                        <label>联系电话</label>
-                        <input type="tel" id="phone" required>
+                        <label>车牌</label>
+                        <input type="text" id="plate" required placeholder="如：豫ADB3663">
                     </div>
                     <div class="form-group">
-                        <label>货物名称</label>
-                        <input type="text" id="goodsName" required>
+                        <label>驾驶员</label>
+                        <input type="text" id="driver" required>
                     </div>
                     <div class="form-group">
-                        <label>重量(kg)</label>
-                        <input type="number" id="weight" step="0.01" required>
+                        <label>始发地</label>
+                        <input type="text" id="origin" required>
                     </div>
                     <div class="form-group">
-                        <label>运费(元)</label>
-                        <input type="number" id="freight" step="0.01" required>
-                    </div>
-                    <div class="form-group col-span-2">
-                        <label>收货地址</label>
-                        <input type="text" id="address" required>
+                        <label>出场时间</label>
+                        <input type="time" id="departureTime">
                     </div>
                     <div class="form-group">
-                        <label>状态</label>
-                        <select id="status" required>
-                            <option value="待发货">待发货</option>
-                            <option value="运输中">运输中</option>
-                            <option value="已送达">已送达</option>
-                            <option value="已取消">已取消</option>
+                        <label>6厂配送</label>
+                        <select id="isFactoryDelivery">
+                            <option value="">请选择</option>
+                            <option value="是">是</option>
+                            <option value="否">否</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="section-title">经停点信息</div>
+                <div class="grid-2">
+                    <div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>经停点1</label>
+                                <input type="text" id="stop1">
+                            </div>
+                            <div class="form-group">
+                                <label>到店时间</label>
+                                <input type="time" id="stop1Time">
+                            </div>
+                            <div class="form-group">
+                                <label>经停点2</label>
+                                <input type="text" id="stop2">
+                            </div>
+                            <div class="form-group">
+                                <label>到店时间</label>
+                                <input type="time" id="stop2Time">
+                            </div>
+                            <div class="form-group">
+                                <label>经停点3</label>
+                                <input type="text" id="stop3">
+                            </div>
+                            <div class="form-group">
+                                <label>到店时间</label>
+                                <input type="time" id="stop3Time">
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>经停点4</label>
+                                <input type="text" id="stop4">
+                            </div>
+                            <div class="form-group">
+                                <label>到店时间</label>
+                                <input type="time" id="stop4Time">
+                            </div>
+                            <div class="form-group">
+                                <label>经停点5</label>
+                                <input type="text" id="stop5">
+                            </div>
+                            <div class="form-group">
+                                <label>到店时间</label>
+                                <input type="time" id="stop5Time">
+                            </div>
+                            <div class="form-group">
+                                <label>经停点6</label>
+                                <input type="text" id="stop6">
+                            </div>
+                            <div class="form-group">
+                                <label>到店时间</label>
+                                <input type="time" id="stop6Time">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-title">里程信息</div>
+                <div class="grid-4">
+                    <div class="form-group">
+                        <label>去程km</label>
+                        <input type="number" id="outboundKm" step="0.1" onchange="calcTotal()">
+                    </div>
+                    <div class="form-group">
+                        <label>回城km</label>
+                        <input type="number" id="returnKm" step="0.1" onchange="calcTotal()">
+                    </div>
+                    <div class="form-group">
+                        <label>总里程</label>
+                        <input type="number" id="totalKm" step="0.1" readonly class="bg-gray-100">
+                    </div>
+                </div>
+
+                <div class="section-title">财务信息</div>
+                <div class="grid-4">
+                    <div class="form-group">
+                        <label>收入(元)</label>
+                        <input type="number" id="income" step="0.01" required onchange="calcProfit()">
+                    </div>
+                    <div class="form-group">
+                        <label>司机运费(元)</label>
+                        <input type="number" id="driverFee" step="0.01" onchange="calcProfit()">
+                    </div>
+                    <div class="form-group">
+                        <label>电补(元)</label>
+                        <input type="number" id="electricSubsidy" step="0.01" onchange="calcProfit()">
+                    </div>
+                    <div class="form-group">
+                        <label>高速费(元)</label>
+                        <input type="number" id="tollFee" step="0.01" onchange="calcProfit()">
+                    </div>
+                    <div class="form-group">
+                        <label>车租(元)</label>
+                        <input type="number" id="rent" step="0.01" onchange="calcProfit()">
+                    </div>
+                    <div class="form-group">
+                        <label>维修费(元)</label>
+                        <input type="number" id="repairFee" step="0.01" onchange="calcProfit()">
+                    </div>
+                    <div class="form-group">
+                        <label>人员成本(元)</label>
+                        <input type="number" id="laborCost" step="0.01" onchange="calcProfit()">
+                    </div>
+                    <div class="form-group">
+                        <label>利润(元)</label>
+                        <input type="number" id="profit" step="0.01" readonly class="bg-gray-100">
+                    </div>
+                </div>
+
+                <div class="section-title">其他信息</div>
+                <div class="grid-4">
+                    <div class="form-group">
+                        <label>到店时效</label>
+                        <input type="text" id="arrivalTime">
+                    </div>
+                    <div class="form-group">
+                        <label>回单</label>
+                        <select id="receipt">
+                            <option value="">请选择</option>
+                            <option value="已上传">已上传</option>
+                            <option value="未上传">未上传</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>下单时间</label>
-                        <input type="datetime-local" id="createTime" required>
+                        <label>温控跟踪</label>
+                        <input type="text" id="tempTracking">
                     </div>
                 </div>
+
                 <div class="flex justify-end gap-3 mt-6">
                     <button type="button" onclick="closeModal()" class="btn-secondary">取消</button>
                     <button type="submit" class="btn-primary">保存</button>
@@ -242,20 +372,17 @@
     </div>
 
     <script>
-        // 数据存储
-        let orders = JSON.parse(localStorage.getItem('logistics_orders')) || [];
+        let orders = JSON.parse(localStorage.getItem('hengbing_orders')) || [];
         let currentPage = 1;
-        const pageSize = 10;
-        let statusChart = null;
-        let trendChart = null;
+        const pageSize = 15;
+        let incomeChart = null;
+        let costChart = null;
 
-        // 初始化
         document.addEventListener('DOMContentLoaded', function() {
             updateDashboard();
             renderOrders();
         });
 
-        // 切换标签
         function showTab(tab) {
             document.getElementById('dashboard-section').classList.add('hidden');
             document.getElementById('orders-section').classList.add('hidden');
@@ -265,95 +392,128 @@
             if (tab === 'dashboard') {
                 document.getElementById('dashboard-section').classList.remove('hidden');
                 document.getElementById('nav-dashboard').classList.add('bg-blue-600');
-                document.getElementById('page-title').textContent = '数据视图';
+                document.getElementById('page-title').textContent = '运营概览';
                 updateDashboard();
             } else {
                 document.getElementById('orders-section').classList.remove('hidden');
                 document.getElementById('nav-orders').classList.add('bg-blue-600');
-                document.getElementById('page-title').textContent = '运单列表';
+                document.getElementById('page-title').textContent = '运单汇总';
                 renderOrders();
             }
         }
 
-        // 更新仪表盘
+        function calcTotal() {
+            const outbound = parseFloat(document.getElementById('outboundKm').value) || 0;
+            const returnKm = parseFloat(document.getElementById('returnKm').value) || 0;
+            document.getElementById('totalKm').value = (outbound + returnKm).toFixed(1);
+        }
+
+        function calcProfit() {
+            const income = parseFloat(document.getElementById('income').value) || 0;
+            const driverFee = parseFloat(document.getElementById('driverFee').value) || 0;
+            const electric = parseFloat(document.getElementById('electricSubsidy').value) || 0;
+            const toll = parseFloat(document.getElementById('tollFee').value) || 0;
+            const rent = parseFloat(document.getElementById('rent').value) || 0;
+            const repair = parseFloat(document.getElementById('repairFee').value) || 0;
+            const labor = parseFloat(document.getElementById('laborCost').value) || 0;
+            document.getElementById('profit').value = (income - driverFee - electric - toll - rent - repair - labor).toFixed(2);
+        }
+
         function updateDashboard() {
             const total = orders.length;
-            const transit = orders.filter(o => o.status === '运输中').length;
-            const delivered = orders.filter(o => o.status === '已送达').length;
-            const totalFreight = orders.reduce((sum, o) => sum + parseFloat(o.freight || 0), 0);
+            const totalIncome = orders.reduce((sum, o) => sum + parseFloat(o.income || 0), 0);
+            const totalDriverFee = orders.reduce((sum, o) => sum + parseFloat(o.driverFee || 0), 0);
+            const totalElectric = orders.reduce((sum, o) => sum + parseFloat(o.electricSubsidy || 0), 0);
+            const totalToll = orders.reduce((sum, o) => sum + parseFloat(o.tollFee || 0), 0);
+            const totalRent = orders.reduce((sum, o) => sum + parseFloat(o.rent || 0), 0);
+            const totalRepair = orders.reduce((sum, o) => sum + parseFloat(o.repairFee || 0), 0);
+            const totalLabor = orders.reduce((sum, o) => sum + parseFloat(o.laborCost || 0), 0);
+            const totalCost = totalDriverFee + totalElectric + totalToll + totalRent + totalRepair + totalLabor;
+            const totalProfit = totalIncome - totalCost;
+            const profitRate = totalIncome > 0 ? (totalProfit / totalIncome * 100).toFixed(2) : 0;
 
             document.getElementById('total-orders').textContent = total;
-            document.getElementById('transit-orders').textContent = transit;
-            document.getElementById('delivered-orders').textContent = delivered;
-            document.getElementById('total-freight').textContent = totalFreight.toFixed(2);
+            document.getElementById('total-income').textContent = totalIncome.toFixed(2);
+            document.getElementById('total-cost').textContent = totalCost.toFixed(2);
+            document.getElementById('total-profit').textContent = totalProfit.toFixed(2);
+            document.getElementById('profit-rate').textContent = profitRate + '%';
+            document.getElementById('total-profit').className = 'text-xl font-bold number ' + (totalProfit >= 0 ? 'positive' : 'negative');
+            
+            document.getElementById('total-driver-fee').textContent = totalDriverFee.toFixed(2);
+            document.getElementById('total-electric').textContent = totalElectric.toFixed(2);
+            document.getElementById('total-toll').textContent = totalToll.toFixed(2);
+            document.getElementById('total-rent').textContent = totalRent.toFixed(2);
 
             renderCharts();
         }
 
-        // 渲染图表
         function renderCharts() {
-            // 状态分布饼图
-            const statusCount = {
-                '待发货': orders.filter(o => o.status === '待发货').length,
-                '运输中': orders.filter(o => o.status === '运输中').length,
-                '已送达': orders.filter(o => o.status === '已送达').length,
-                '已取消': orders.filter(o => o.status === '已取消').length
-            };
+            // 按日期汇总
+            const dateMap = {};
+            orders.forEach(o => {
+                if (!o.date) return;
+                if (!dateMap[o.date]) dateMap[o.date] = { income: 0, profit: 0 };
+                dateMap[o.date].income += parseFloat(o.income || 0);
+                const cost = parseFloat(o.driverFee || 0) + parseFloat(o.electricSubsidy || 0) + 
+                           parseFloat(o.tollFee || 0) + parseFloat(o.rent || 0) + 
+                           parseFloat(o.repairFee || 0) + parseFloat(o.laborCost || 0);
+                dateMap[o.date].profit += (parseFloat(o.income || 0) - cost);
+            });
+            
+            const dates = Object.keys(dateMap).sort().slice(-7);
+            const incomes = dates.map(d => dateMap[d].income);
+            const profits = dates.map(d => dateMap[d].profit);
 
-            const statusCtx = document.getElementById('statusChart').getContext('2d');
-            if (statusChart) statusChart.destroy();
-            statusChart = new Chart(statusCtx, {
+            const incomeCtx = document.getElementById('incomeChart').getContext('2d');
+            if (incomeChart) incomeChart.destroy();
+            incomeChart = new Chart(incomeCtx, {
+                type: 'bar',
+                data: {
+                    labels: dates.map(d => d.slice(5)),
+                    datasets: [
+                        { label: '收入', data: incomes, backgroundColor: '#3b82f6' },
+                        { label: '利润', data: profits, backgroundColor: '#10b981' }
+                    ]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true } } }
+            });
+
+            // 成本结构
+            const totalDriverFee = orders.reduce((sum, o) => sum + parseFloat(o.driverFee || 0), 0);
+            const totalElectric = orders.reduce((sum, o) => sum + parseFloat(o.electricSubsidy || 0), 0);
+            const totalToll = orders.reduce((sum, o) => sum + parseFloat(o.tollFee || 0), 0);
+            const totalRent = orders.reduce((sum, o) => sum + parseFloat(o.rent || 0), 0);
+            const totalRepair = orders.reduce((sum, o) => sum + parseFloat(o.repairFee || 0), 0);
+            const totalLabor = orders.reduce((sum, o) => sum + parseFloat(o.laborCost || 0), 0);
+
+            const costCtx = document.getElementById('costChart').getContext('2d');
+            if (costChart) costChart.destroy();
+            costChart = new Chart(costCtx, {
                 type: 'doughnut',
                 data: {
-                    labels: Object.keys(statusCount),
+                    labels: ['司机运费', '电补', '高速费', '车租', '维修费', '人员成本'],
                     datasets: [{
-                        data: Object.values(statusCount),
-                        backgroundColor: ['#fbbf24', '#3b82f6', '#10b981', '#ef4444']
+                        data: [totalDriverFee, totalElectric, totalToll, totalRent, totalRepair, totalLabor],
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6b7280']
                     }]
                 },
                 options: { responsive: true }
             });
-
-            // 近7天趋势
-            const dates = [];
-            const counts = [];
-            for (let i = 6; i >= 0; i--) {
-                const date = new Date();
-                date.setDate(date.getDate() - i);
-                const dateStr = date.toISOString().split('T')[0];
-                dates.push(dateStr.slice(5));
-                counts.push(orders.filter(o => o.createTime && o.createTime.startsWith(dateStr)).length);
-            }
-
-            const trendCtx = document.getElementById('trendChart').getContext('2d');
-            if (trendChart) trendChart.destroy();
-            trendChart = new Chart(trendCtx, {
-                type: 'line',
-                data: {
-                    labels: dates,
-                    datasets: [{
-                        label: '运单数',
-                        data: counts,
-                        borderColor: '#3b82f6',
-                        tension: 0.3
-                    }]
-                },
-                options: { responsive: true, scales: { y: { beginAtZero: true } } }
-            });
         }
 
-        // 渲染运单列表
         function renderOrders() {
             const search = document.getElementById('searchInput').value.toLowerCase();
-            const statusFilter = document.getElementById('statusFilter').value;
+            const dateFilter = document.getElementById('dateFilter').value;
+            const plateFilter = document.getElementById('plateFilter').value.toLowerCase();
             
             let filtered = orders.filter(o => {
                 const matchSearch = !search || 
                     (o.trackingNo && o.trackingNo.toLowerCase().includes(search)) ||
-                    (o.recipient && o.recipient.toLowerCase().includes(search)) ||
-                    (o.phone && o.phone.includes(search));
-                const matchStatus = !statusFilter || o.status === statusFilter;
-                return matchSearch && matchStatus;
+                    (o.plate && o.plate.toLowerCase().includes(search)) ||
+                    (o.driver && o.driver.toLowerCase().includes(search));
+                const matchDate = !dateFilter || o.date === dateFilter;
+                const matchPlate = !plateFilter || (o.plate && o.plate.toLowerCase().includes(plateFilter));
+                return matchSearch && matchDate && matchPlate;
             });
 
             const totalPages = Math.ceil(filtered.length / pageSize);
@@ -363,15 +523,24 @@
             const tbody = document.getElementById('ordersTable');
             tbody.innerHTML = pageData.map(order => `
                 <tr>
+                    <td>${order.seq || ''}</td>
                     <td>${order.trackingNo || ''}</td>
-                    <td>${order.recipient || ''}</td>
-                    <td>${order.phone || ''}</td>
-                    <td>${order.address || ''}</td>
-                    <td>${order.goodsName || ''}</td>
-                    <td>${order.weight || ''}</td>
-                    <td>${order.freight || ''}</td>
-                    <td><span class="status-${getStatusClass(order.status)}">${order.status || ''}</span></td>
-                    <td>${order.createTime ? order.createTime.replace('T', ' ').slice(0, 16) : ''}</td>
+                    <td>${order.date || ''}</td>
+                    <td>${order.plate || ''}</td>
+                    <td>${order.driver || ''}</td>
+                    <td>${order.origin || ''}</td>
+                    <td>${order.departureTime || ''}</td>
+                    <td>${order.stop1 || ''}</td>
+                    <td>${order.stop1Time || ''}</td>
+                    <td>${order.totalKm || ''}</td>
+                    <td class="text-right number">${parseFloat(order.income || 0).toFixed(2)}</td>
+                    <td class="text-right number">${parseFloat(order.driverFee || 0).toFixed(2)}</td>
+                    <td class="text-right number">${parseFloat(order.electricSubsidy || 0).toFixed(2)}</td>
+                    <td class="text-right number">${parseFloat(order.tollFee || 0).toFixed(2)}</td>
+                    <td class="text-right number">${parseFloat(order.rent || 0).toFixed(2)}</td>
+                    <td class="text-right number ${parseFloat(order.profit || 0) >= 0 ? 'positive' : 'negative'}">${parseFloat(order.profit || 0).toFixed(2)}</td>
+                    <td>${order.arrivalTime || ''}</td>
+                    <td>${order.receipt || ''}</td>
                     <td>
                         <button onclick="editOrder('${order.id}')" class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button>
                         <button onclick="deleteOrder('${order.id}')" class="text-red-600"><i class="fas fa-trash"></i></button>
@@ -379,61 +548,66 @@
                 </tr>
             `).join('');
 
-            // 分页
             let paginationHtml = '';
             for (let i = 1; i <= totalPages; i++) {
-                paginationHtml += `<button onclick="goPage(${i})" class="px-3 py-1 rounded ${i === currentPage ? 'bg-blue-600 text-white' : 'bg-gray-200'}">${i}</button>`;
+                paginationHtml += `<button onclick="goPage(${i})" class="px-3 py-1 rounded text-sm ${i === currentPage ? 'bg-blue-600 text-white' : 'bg-gray-200'}">${i}</button>`;
             }
-            document.getElementById('pagination').innerHTML = paginationHtml || '<span class="text-gray-500">暂无数据</span>';
+            document.getElementById('pagination').innerHTML = paginationHtml || '<span class="text-gray-500 text-sm">暂无数据</span>';
         }
 
-        function getStatusClass(status) {
-            const map = { '待发货': 'pending', '运输中': 'transit', '已送达': 'delivered', '已取消': 'cancelled' };
-            return map[status] || 'pending';
-        }
+        function goPage(page) { currentPage = page; renderOrders(); }
+        function searchOrders() { currentPage = 1; renderOrders(); }
+        function filterOrders() { currentPage = 1; renderOrders(); }
 
-        function goPage(page) {
-            currentPage = page;
-            renderOrders();
-        }
-
-        function searchOrders() {
-            currentPage = 1;
-            renderOrders();
-        }
-
-        function filterOrders() {
-            currentPage = 1;
-            renderOrders();
-        }
-
-        // 弹窗操作
         function openModal() {
             document.getElementById('orderForm').reset();
             document.getElementById('orderId').value = '';
             document.getElementById('modalTitle').textContent = '新增运单';
-            document.getElementById('createTime').value = new Date().toISOString().slice(0, 16);
+            document.getElementById('date').value = new Date().toISOString().slice(0, 10);
             document.getElementById('orderModal').style.display = 'block';
         }
 
-        function closeModal() {
-            document.getElementById('orderModal').style.display = 'none';
-        }
+        function closeModal() { document.getElementById('orderModal').style.display = 'none'; }
 
         function editOrder(id) {
             const order = orders.find(o => o.id === id);
             if (!order) return;
             
             document.getElementById('orderId').value = order.id;
+            document.getElementById('seq').value = order.seq || '';
             document.getElementById('trackingNo').value = order.trackingNo || '';
-            document.getElementById('recipient').value = order.recipient || '';
-            document.getElementById('phone').value = order.phone || '';
-            document.getElementById('address').value = order.address || '';
-            document.getElementById('goodsName').value = order.goodsName || '';
-            document.getElementById('weight').value = order.weight || '';
-            document.getElementById('freight').value = order.freight || '';
-            document.getElementById('status').value = order.status || '待发货';
-            document.getElementById('createTime').value = order.createTime || '';
+            document.getElementById('date').value = order.date || '';
+            document.getElementById('plate').value = order.plate || '';
+            document.getElementById('driver').value = order.driver || '';
+            document.getElementById('origin').value = order.origin || '';
+            document.getElementById('departureTime').value = order.departureTime || '';
+            document.getElementById('isFactoryDelivery').value = order.isFactoryDelivery || '';
+            document.getElementById('stop1').value = order.stop1 || '';
+            document.getElementById('stop1Time').value = order.stop1Time || '';
+            document.getElementById('stop2').value = order.stop2 || '';
+            document.getElementById('stop2Time').value = order.stop2Time || '';
+            document.getElementById('stop3').value = order.stop3 || '';
+            document.getElementById('stop3Time').value = order.stop3Time || '';
+            document.getElementById('stop4').value = order.stop4 || '';
+            document.getElementById('stop4Time').value = order.stop4Time || '';
+            document.getElementById('stop5').value = order.stop5 || '';
+            document.getElementById('stop5Time').value = order.stop5Time || '';
+            document.getElementById('stop6').value = order.stop6 || '';
+            document.getElementById('stop6Time').value = order.stop6Time || '';
+            document.getElementById('outboundKm').value = order.outboundKm || '';
+            document.getElementById('returnKm').value = order.returnKm || '';
+            document.getElementById('totalKm').value = order.totalKm || '';
+            document.getElementById('income').value = order.income || '';
+            document.getElementById('driverFee').value = order.driverFee || '';
+            document.getElementById('electricSubsidy').value = order.electricSubsidy || '';
+            document.getElementById('tollFee').value = order.tollFee || '';
+            document.getElementById('rent').value = order.rent || '';
+            document.getElementById('repairFee').value = order.repairFee || '';
+            document.getElementById('laborCost').value = order.laborCost || '';
+            document.getElementById('profit').value = order.profit || '';
+            document.getElementById('arrivalTime').value = order.arrivalTime || '';
+            document.getElementById('receipt').value = order.receipt || '';
+            document.getElementById('tempTracking').value = order.tempTracking || '';
             
             document.getElementById('modalTitle').textContent = '编辑运单';
             document.getElementById('orderModal').style.display = 'block';
@@ -444,15 +618,40 @@
             const id = document.getElementById('orderId').value;
             const order = {
                 id: id || Date.now().toString(),
+                seq: document.getElementById('seq').value,
                 trackingNo: document.getElementById('trackingNo').value,
-                recipient: document.getElementById('recipient').value,
-                phone: document.getElementById('phone').value,
-                address: document.getElementById('address').value,
-                goodsName: document.getElementById('goodsName').value,
-                weight: document.getElementById('weight').value,
-                freight: document.getElementById('freight').value,
-                status: document.getElementById('status').value,
-                createTime: document.getElementById('createTime').value
+                date: document.getElementById('date').value,
+                plate: document.getElementById('plate').value,
+                driver: document.getElementById('driver').value,
+                origin: document.getElementById('origin').value,
+                departureTime: document.getElementById('departureTime').value,
+                isFactoryDelivery: document.getElementById('isFactoryDelivery').value,
+                stop1: document.getElementById('stop1').value,
+                stop1Time: document.getElementById('stop1Time').value,
+                stop2: document.getElementById('stop2').value,
+                stop2Time: document.getElementById('stop2Time').value,
+                stop3: document.getElementById('stop3').value,
+                stop3Time: document.getElementById('stop3Time').value,
+                stop4: document.getElementById('stop4').value,
+                stop4Time: document.getElementById('stop4Time').value,
+                stop5: document.getElementById('stop5').value,
+                stop5Time: document.getElementById('stop5Time').value,
+                stop6: document.getElementById('stop6').value,
+                stop6Time: document.getElementById('stop6Time').value,
+                outboundKm: document.getElementById('outboundKm').value,
+                returnKm: document.getElementById('returnKm').value,
+                totalKm: document.getElementById('totalKm').value,
+                income: document.getElementById('income').value,
+                driverFee: document.getElementById('driverFee').value,
+                electricSubsidy: document.getElementById('electricSubsidy').value,
+                tollFee: document.getElementById('tollFee').value,
+                rent: document.getElementById('rent').value,
+                repairFee: document.getElementById('repairFee').value,
+                laborCost: document.getElementById('laborCost').value,
+                profit: document.getElementById('profit').value,
+                arrivalTime: document.getElementById('arrivalTime').value,
+                receipt: document.getElementById('receipt').value,
+                tempTracking: document.getElementById('tempTracking').value
             };
 
             if (id) {
@@ -462,7 +661,7 @@
                 orders.push(order);
             }
 
-            localStorage.setItem('logistics_orders', JSON.stringify(orders));
+            localStorage.setItem('hengbing_orders', JSON.stringify(orders));
             closeModal();
             renderOrders();
             updateDashboard();
@@ -471,12 +670,11 @@
         function deleteOrder(id) {
             if (!confirm('确定删除该运单？')) return;
             orders = orders.filter(o => o.id !== id);
-            localStorage.setItem('logistics_orders', JSON.stringify(orders));
+            localStorage.setItem('hengbing_orders', JSON.stringify(orders));
             renderOrders();
             updateDashboard();
         }
 
-        // 导入功能
         function importData(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -486,20 +684,19 @@
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                    const sheet = workbook.Sheets['汇总'] || workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(sheet);
 
-                    // 字段映射
                     const fieldMap = {
-                        '运单号': 'trackingNo', 'trackingNo': 'trackingNo', '单号': 'trackingNo',
-                        '收件人': 'recipient', 'recipient': 'recipient', '姓名': 'recipient',
-                        '联系电话': 'phone', 'phone': 'phone', '电话': 'phone', '手机号': 'phone',
-                        '收货地址': 'address', 'address': 'address', '地址': 'address',
-                        '货物名称': 'goodsName', 'goodsName': 'goodsName', '货物': 'goodsName', '品名': 'goodsName',
-                        '重量': 'weight', 'weight': 'weight', 'kg': 'weight',
-                        '运费': 'freight', 'freight': 'freight', '费用': 'freight', '金额': 'freight',
-                        '状态': 'status', 'status': 'status',
-                        '下单时间': 'createTime', 'createTime': 'createTime', '时间': 'createTime', '日期': 'createTime'
+                        '序列': 'seq', '运单号': 'trackingNo', '日期': 'date', '车牌': 'plate', '驾驶员': 'driver',
+                        '始发地': 'origin', '出场时间': 'departureTime', '经停点1': 'stop1', '到店时间': 'stop1Time',
+                        '经停点2': 'stop2', '到店时间.1': 'stop2Time', '经停点3': 'stop3', '到店时间.2': 'stop3Time',
+                        '经停点4': 'stop4', '到店时间.3': 'stop4Time', '经停点5': 'stop5', '到店时间.4': 'stop5Time',
+                        '经停点6': 'stop6', '到店时间.5': 'stop6Time', '6厂配送': 'isFactoryDelivery',
+                        '去程km': 'outboundKm', '回城km': 'returnKm', '总里程': 'totalKm',
+                        '收入': 'income', '司机运费': 'driverFee', '电补': 'electricSubsidy', '高速费': 'tollFee',
+                        '车租': 'rent', '维修费': 'repairFee', '人员成本': 'laborCost', '利润': 'profit',
+                        '到店时效': 'arrivalTime', '回单': 'receipt', '温控跟踪': 'tempTracking'
                     };
 
                     const imported = jsonData.map(row => {
@@ -508,16 +705,25 @@
                             const mappedKey = fieldMap[key];
                             if (mappedKey) order[mappedKey] = row[key];
                         }
-                        // 状态标准化
-                        if (order.status) {
-                            const statusMap = { 'pending': '待发货', 'transit': '运输中', 'delivered': '已送达', 'cancelled': '已取消' };
-                            order.status = statusMap[order.status] || order.status;
+                        // 处理日期格式
+                        if (order.date && typeof order.date === 'number') {
+                            const date = new Date((order.date - 25569) * 86400 * 1000);
+                            order.date = date.toISOString().slice(0, 10);
                         }
+                        // 处理时间格式
+                        ['departureTime', 'stop1Time', 'stop2Time', 'stop3Time', 'stop4Time', 'stop5Time', 'stop6Time'].forEach(field => {
+                            if (order[field] && typeof order[field] === 'number') {
+                                const time = order[field];
+                                const hours = Math.floor(time * 24);
+                                const minutes = Math.round((time * 24 - hours) * 60);
+                                order[field] = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                            }
+                        });
                         return order;
                     }).filter(o => o.trackingNo);
 
                     orders = orders.concat(imported);
-                    localStorage.setItem('logistics_orders', JSON.stringify(orders));
+                    localStorage.setItem('hengbing_orders', JSON.stringify(orders));
                     
                     alert(`成功导入 ${imported.length} 条运单`);
                     renderOrders();
@@ -530,7 +736,6 @@
             e.target.value = '';
         }
 
-        // 导出功能
         function exportData() {
             if (orders.length === 0) {
                 alert('暂无数据可导出');
@@ -538,30 +743,29 @@
             }
 
             const exportData = orders.map(o => ({
-                '运单号': o.trackingNo,
-                '收件人': o.recipient,
-                '联系电话': o.phone,
-                '收货地址': o.address,
-                '货物名称': o.goodsName,
-                '重量(kg)': o.weight,
-                '运费(元)': o.freight,
-                '状态': o.status,
-                '下单时间': o.createTime
+                '序列': o.seq, '运单号': o.trackingNo, '日期': o.date, '车牌': o.plate, '驾驶员': o.driver,
+                '始发地': o.origin, '出场时间': o.departureTime, '经停点1': o.stop1, '到店时间': o.stop1Time,
+                '经停点2': o.stop2, '到店时间.1': o.stop2Time, '经停点3': o.stop3, '到店时间.2': o.stop3Time,
+                '经停点4': o.stop4, '到店时间.3': o.stop4Time, '经停点5': o.stop5, '到店时间.4': o.stop5Time,
+                '经停点6': o.stop6, '到店时间.5': o.stop6Time, '6厂配送': o.isFactoryDelivery,
+                '去程km': o.outboundKm, '回城km': o.returnKm, '总里程': o.totalKm,
+                '收入': parseFloat(o.income || 0), '司机运费': parseFloat(o.driverFee || 0),
+                '电补': parseFloat(o.electricSubsidy || 0), '高速费': parseFloat(o.tollFee || 0),
+                '车租': parseFloat(o.rent || 0), '维修费': parseFloat(o.repairFee || 0),
+                '人员成本': parseFloat(o.laborCost || 0), '利润': parseFloat(o.profit || 0),
+                '到店时效': o.arrivalTime, '回单': o.receipt, '温控跟踪': o.tempTracking
             }));
 
             const ws = XLSX.utils.json_to_sheet(exportData);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, '运单列表');
+            XLSX.utils.book_append_sheet(wb, ws, '汇总');
             
             const now = new Date().toISOString().slice(0, 10);
-            XLSX.writeFile(wb, `物流运单_${now}.xlsx`);
+            XLSX.writeFile(wb, `恒冰运营表_${now}.xlsx`);
         }
 
-        // 点击模态框外部关闭
         window.onclick = function(e) {
-            if (e.target === document.getElementById('orderModal')) {
-                closeModal();
-            }
+            if (e.target === document.getElementById('orderModal')) closeModal();
         }
     </script>
 </body>
