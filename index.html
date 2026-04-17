@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>物流管理系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .tab-active { border-bottom: 2px solid #3b82f6; color: #3b82f6; }
+        .card { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .btn-primary { background: #3b82f6; color: white; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-secondary { background: #6b7280; color: white; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; }
+        .btn-secondary:hover { background: #4b5563; }
+        .btn-success { background: #10b981; color: white; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; }
+        .btn-success:hover { background: #059669; }
+        .btn-danger { background: #ef4444; color: white; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; }
+        .btn-danger:hover { background: #dc2626; }
+        .status-pending { background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+        .status-transit { background: #dbeafe; color: #1e40af; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+        .status-delivered { background: #d1fae5; color: #065f46; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+        .status-cancelled { background: #fee2e2; color: #991b1b; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        th { background: #f9fafb; font-weight: 600; }
+        tr:hover { background: #f9fafb; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal-content { background: white; margin: 50px auto; padding: 24px; width: 90%; max-width: 600px; border-radius: 8px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 4px; font-weight: 500; }
+        .form-group input, .form-group select { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="flex h-screen">
+        <!-- 侧边栏 -->
+        <aside class="w-64 bg-gray-900 text-white flex flex-col">
+            <div class="p-6 border-b border-gray-800">
+                <h1 class="text-xl font-bold"><i class="fas fa-truck mr-2"></i>物流管理系统</h1>
+            </div>
+            <nav class="flex-1 p-4">
+                <a href="#" onclick="showTab('dashboard')" id="nav-dashboard" class="block py-3 px-4 rounded-lg mb-2 bg-blue-600">
+                    <i class="fas fa-chart-line mr-2"></i>数据视图
+                </a>
+                <a href="#" onclick="showTab('orders')" id="nav-orders" class="block py-3 px-4 rounded-lg mb-2 hover:bg-gray-800">
+                    <i class="fas fa-list mr-2"></i>运单列表
+                </a>
+            </nav>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="flex-1 overflow-auto">
+            <!-- 顶部栏 -->
+            <header class="bg-white shadow-sm px-6 py-4 flex justify-between items-center">
+                <h2 id="page-title" class="text-xl font-semibold">数据视图</h2>
+                <div class="flex gap-3">
+                    <input type="file" id="importFile" accept=".xlsx,.xls,.csv" class="hidden" onchange="importData(event)">
+                    <button onclick="document.getElementById('importFile').click()" class="btn-success">
+                        <i class="fas fa-upload mr-1"></i>导入运单
+                    </button>
+                    <button onclick="exportData()" class="btn-primary">
+                        <i class="fas fa-download mr-1"></i>导出数据
+                    </button>
+                </div>
+            </header>
+
+            <!-- 数据视图板块 -->
+            <div id="dashboard-section" class="p-6">
+                <!-- 统计卡片 -->
+                <div class="grid grid-cols-4 gap-6 mb-6">
+                    <div class="card p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">总运单数</p>
+                                <p id="total-orders" class="text-2xl font-bold">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-box text-blue-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">运输中</p>
+                                <p id="transit-orders" class="text-2xl font-bold">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-shipping-fast text-yellow-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">已送达</p>
+                                <p id="delivered-orders" class="text-2xl font-bold">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-check-circle text-green-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">总运费(元)</p>
+                                <p id="total-freight" class="text-2xl font-bold">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-yen-sign text-purple-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 图表 -->
+                <div class="grid grid-cols-2 gap-6">
+                    <div class="card p-6">
+                        <h3 class="font-semibold mb-4">运单状态分布</h3>
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                    <div class="card p-6">
+                        <h3 class="font-semibold mb-4">近7天运单趋势</h3>
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 运单列表板块 -->
+            <div id="orders-section" class="p-6 hidden">
+                <div class="card">
+                    <div class="p-4 border-b flex justify-between items-center">
+                        <div class="flex gap-4">
+                            <input type="text" id="searchInput" placeholder="搜索运单号/收件人/电话" 
+                                   class="px-4 py-2 border rounded-lg w-64" onkeyup="searchOrders()">
+                            <select id="statusFilter" onchange="filterOrders()" class="px-4 py-2 border rounded-lg">
+                                <option value="">全部状态</option>
+                                <option value="待发货">待发货</option>
+                                <option value="运输中">运输中</option>
+                                <option value="已送达">已送达</option>
+                                <option value="已取消">已取消</option>
+                            </select>
+                        </div>
+                        <button onclick="openModal()" class="btn-primary">
+                            <i class="fas fa-plus mr-1"></i>新增运单
+                        </button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>运单号</th>
+                                <th>收件人</th>
+                                <th>联系电话</th>
+                                <th>收货地址</th>
+                                <th>货物名称</th>
+                                <th>重量(kg)</th>
+                                <th>运费(元)</th>
+                                <th>状态</th>
+                                <th>下单时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ordersTable">
+                            <!-- 动态生成 -->
+                        </tbody>
+                    </table>
+                    <div id="pagination" class="p-4 border-t flex justify-center gap-2">
+                        <!-- 分页 -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 新增/编辑弹窗 -->
+    <div id="orderModal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modalTitle" class="text-lg font-semibold">新增运单</h3>
+                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="orderForm" onsubmit="saveOrder(event)">
+                <input type="hidden" id="orderId">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="form-group">
+                        <label>运单号</label>
+                        <input type="text" id="trackingNo" required placeholder="如：YD20250417001">
+                    </div>
+                    <div class="form-group">
+                        <label>收件人</label>
+                        <input type="text" id="recipient" required>
+                    </div>
+                    <div class="form-group">
+                        <label>联系电话</label>
+                        <input type="tel" id="phone" required>
+                    </div>
+                    <div class="form-group">
+                        <label>货物名称</label>
+                        <input type="text" id="goodsName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>重量(kg)</label>
+                        <input type="number" id="weight" step="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label>运费(元)</label>
+                        <input type="number" id="freight" step="0.01" required>
+                    </div>
+                    <div class="form-group col-span-2">
+                        <label>收货地址</label>
+                        <input type="text" id="address" required>
+                    </div>
+                    <div class="form-group">
+                        <label>状态</label>
+                        <select id="status" required>
+                            <option value="待发货">待发货</option>
+                            <option value="运输中">运输中</option>
+                            <option value="已送达">已送达</option>
+                            <option value="已取消">已取消</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>下单时间</label>
+                        <input type="datetime-local" id="createTime" required>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeModal()" class="btn-secondary">取消</button>
+                    <button type="submit" class="btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 数据存储
+        let orders = JSON.parse(localStorage.getItem('logistics_orders')) || [];
+        let currentPage = 1;
+        const pageSize = 10;
+        let statusChart = null;
+        let trendChart = null;
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDashboard();
+            renderOrders();
+        });
+
+        // 切换标签
+        function showTab(tab) {
+            document.getElementById('dashboard-section').classList.add('hidden');
+            document.getElementById('orders-section').classList.add('hidden');
+            document.getElementById('nav-dashboard').classList.remove('bg-blue-600');
+            document.getElementById('nav-orders').classList.remove('bg-blue-600');
+            
+            if (tab === 'dashboard') {
+                document.getElementById('dashboard-section').classList.remove('hidden');
+                document.getElementById('nav-dashboard').classList.add('bg-blue-600');
+                document.getElementById('page-title').textContent = '数据视图';
+                updateDashboard();
+            } else {
+                document.getElementById('orders-section').classList.remove('hidden');
+                document.getElementById('nav-orders').classList.add('bg-blue-600');
+                document.getElementById('page-title').textContent = '运单列表';
+                renderOrders();
+            }
+        }
+
+        // 更新仪表盘
+        function updateDashboard() {
+            const total = orders.length;
+            const transit = orders.filter(o => o.status === '运输中').length;
+            const delivered = orders.filter(o => o.status === '已送达').length;
+            const totalFreight = orders.reduce((sum, o) => sum + parseFloat(o.freight || 0), 0);
+
+            document.getElementById('total-orders').textContent = total;
+            document.getElementById('transit-orders').textContent = transit;
+            document.getElementById('delivered-orders').textContent = delivered;
+            document.getElementById('total-freight').textContent = totalFreight.toFixed(2);
+
+            renderCharts();
+        }
+
+        // 渲染图表
+        function renderCharts() {
+            // 状态分布饼图
+            const statusCount = {
+                '待发货': orders.filter(o => o.status === '待发货').length,
+                '运输中': orders.filter(o => o.status === '运输中').length,
+                '已送达': orders.filter(o => o.status === '已送达').length,
+                '已取消': orders.filter(o => o.status === '已取消').length
+            };
+
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            if (statusChart) statusChart.destroy();
+            statusChart = new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(statusCount),
+                    datasets: [{
+                        data: Object.values(statusCount),
+                        backgroundColor: ['#fbbf24', '#3b82f6', '#10b981', '#ef4444']
+                    }]
+                },
+                options: { responsive: true }
+            });
+
+            // 近7天趋势
+            const dates = [];
+            const counts = [];
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().split('T')[0];
+                dates.push(dateStr.slice(5));
+                counts.push(orders.filter(o => o.createTime && o.createTime.startsWith(dateStr)).length);
+            }
+
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            if (trendChart) trendChart.destroy();
+            trendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: '运单数',
+                        data: counts,
+                        borderColor: '#3b82f6',
+                        tension: 0.3
+                    }]
+                },
+                options: { responsive: true, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        // 渲染运单列表
+        function renderOrders() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            
+            let filtered = orders.filter(o => {
+                const matchSearch = !search || 
+                    (o.trackingNo && o.trackingNo.toLowerCase().includes(search)) ||
+                    (o.recipient && o.recipient.toLowerCase().includes(search)) ||
+                    (o.phone && o.phone.includes(search));
+                const matchStatus = !statusFilter || o.status === statusFilter;
+                return matchSearch && matchStatus;
+            });
+
+            const totalPages = Math.ceil(filtered.length / pageSize);
+            const start = (currentPage - 1) * pageSize;
+            const pageData = filtered.slice(start, start + pageSize);
+
+            const tbody = document.getElementById('ordersTable');
+            tbody.innerHTML = pageData.map(order => `
+                <tr>
+                    <td>${order.trackingNo || ''}</td>
+                    <td>${order.recipient || ''}</td>
+                    <td>${order.phone || ''}</td>
+                    <td>${order.address || ''}</td>
+                    <td>${order.goodsName || ''}</td>
+                    <td>${order.weight || ''}</td>
+                    <td>${order.freight || ''}</td>
+                    <td><span class="status-${getStatusClass(order.status)}">${order.status || ''}</span></td>
+                    <td>${order.createTime ? order.createTime.replace('T', ' ').slice(0, 16) : ''}</td>
+                    <td>
+                        <button onclick="editOrder('${order.id}')" class="text-blue-600 mr-2"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteOrder('${order.id}')" class="text-red-600"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // 分页
+            let paginationHtml = '';
+            for (let i = 1; i <= totalPages; i++) {
+                paginationHtml += `<button onclick="goPage(${i})" class="px-3 py-1 rounded ${i === currentPage ? 'bg-blue-600 text-white' : 'bg-gray-200'}">${i}</button>`;
+            }
+            document.getElementById('pagination').innerHTML = paginationHtml || '<span class="text-gray-500">暂无数据</span>';
+        }
+
+        function getStatusClass(status) {
+            const map = { '待发货': 'pending', '运输中': 'transit', '已送达': 'delivered', '已取消': 'cancelled' };
+            return map[status] || 'pending';
+        }
+
+        function goPage(page) {
+            currentPage = page;
+            renderOrders();
+        }
+
+        function searchOrders() {
+            currentPage = 1;
+            renderOrders();
+        }
+
+        function filterOrders() {
+            currentPage = 1;
+            renderOrders();
+        }
+
+        // 弹窗操作
+        function openModal() {
+            document.getElementById('orderForm').reset();
+            document.getElementById('orderId').value = '';
+            document.getElementById('modalTitle').textContent = '新增运单';
+            document.getElementById('createTime').value = new Date().toISOString().slice(0, 16);
+            document.getElementById('orderModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('orderModal').style.display = 'none';
+        }
+
+        function editOrder(id) {
+            const order = orders.find(o => o.id === id);
+            if (!order) return;
+            
+            document.getElementById('orderId').value = order.id;
+            document.getElementById('trackingNo').value = order.trackingNo || '';
+            document.getElementById('recipient').value = order.recipient || '';
+            document.getElementById('phone').value = order.phone || '';
+            document.getElementById('address').value = order.address || '';
+            document.getElementById('goodsName').value = order.goodsName || '';
+            document.getElementById('weight').value = order.weight || '';
+            document.getElementById('freight').value = order.freight || '';
+            document.getElementById('status').value = order.status || '待发货';
+            document.getElementById('createTime').value = order.createTime || '';
+            
+            document.getElementById('modalTitle').textContent = '编辑运单';
+            document.getElementById('orderModal').style.display = 'block';
+        }
+
+        function saveOrder(e) {
+            e.preventDefault();
+            const id = document.getElementById('orderId').value;
+            const order = {
+                id: id || Date.now().toString(),
+                trackingNo: document.getElementById('trackingNo').value,
+                recipient: document.getElementById('recipient').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value,
+                goodsName: document.getElementById('goodsName').value,
+                weight: document.getElementById('weight').value,
+                freight: document.getElementById('freight').value,
+                status: document.getElementById('status').value,
+                createTime: document.getElementById('createTime').value
+            };
+
+            if (id) {
+                const idx = orders.findIndex(o => o.id === id);
+                if (idx >= 0) orders[idx] = order;
+            } else {
+                orders.push(order);
+            }
+
+            localStorage.setItem('logistics_orders', JSON.stringify(orders));
+            closeModal();
+            renderOrders();
+            updateDashboard();
+        }
+
+        function deleteOrder(id) {
+            if (!confirm('确定删除该运单？')) return;
+            orders = orders.filter(o => o.id !== id);
+            localStorage.setItem('logistics_orders', JSON.stringify(orders));
+            renderOrders();
+            updateDashboard();
+        }
+
+        // 导入功能
+        function importData(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+                    // 字段映射
+                    const fieldMap = {
+                        '运单号': 'trackingNo', 'trackingNo': 'trackingNo', '单号': 'trackingNo',
+                        '收件人': 'recipient', 'recipient': 'recipient', '姓名': 'recipient',
+                        '联系电话': 'phone', 'phone': 'phone', '电话': 'phone', '手机号': 'phone',
+                        '收货地址': 'address', 'address': 'address', '地址': 'address',
+                        '货物名称': 'goodsName', 'goodsName': 'goodsName', '货物': 'goodsName', '品名': 'goodsName',
+                        '重量': 'weight', 'weight': 'weight', 'kg': 'weight',
+                        '运费': 'freight', 'freight': 'freight', '费用': 'freight', '金额': 'freight',
+                        '状态': 'status', 'status': 'status',
+                        '下单时间': 'createTime', 'createTime': 'createTime', '时间': 'createTime', '日期': 'createTime'
+                    };
+
+                    const imported = jsonData.map(row => {
+                        const order = { id: Date.now().toString() + Math.random().toString(36).substr(2, 5) };
+                        for (let key in row) {
+                            const mappedKey = fieldMap[key];
+                            if (mappedKey) order[mappedKey] = row[key];
+                        }
+                        // 状态标准化
+                        if (order.status) {
+                            const statusMap = { 'pending': '待发货', 'transit': '运输中', 'delivered': '已送达', 'cancelled': '已取消' };
+                            order.status = statusMap[order.status] || order.status;
+                        }
+                        return order;
+                    }).filter(o => o.trackingNo);
+
+                    orders = orders.concat(imported);
+                    localStorage.setItem('logistics_orders', JSON.stringify(orders));
+                    
+                    alert(`成功导入 ${imported.length} 条运单`);
+                    renderOrders();
+                    updateDashboard();
+                } catch (err) {
+                    alert('导入失败：' + err.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+            e.target.value = '';
+        }
+
+        // 导出功能
+        function exportData() {
+            if (orders.length === 0) {
+                alert('暂无数据可导出');
+                return;
+            }
+
+            const exportData = orders.map(o => ({
+                '运单号': o.trackingNo,
+                '收件人': o.recipient,
+                '联系电话': o.phone,
+                '收货地址': o.address,
+                '货物名称': o.goodsName,
+                '重量(kg)': o.weight,
+                '运费(元)': o.freight,
+                '状态': o.status,
+                '下单时间': o.createTime
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '运单列表');
+            
+            const now = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(wb, `物流运单_${now}.xlsx`);
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(e) {
+            if (e.target === document.getElementById('orderModal')) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>
