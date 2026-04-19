@@ -325,42 +325,62 @@
         // ====== 云端读写 ======
         async function loadFromCloud() {
             setSyncStatus('ing', '同步中...');
+            // 先读取本地数据作为基准，防止数据丢失
+            const localOrders = JSON.parse(localStorage.getItem('hengbing_orders') || '[]');
+            orders = localOrders; // 默认使用本地数据
+            
             try {
                 const res = await fetch(`${PAGES_URL}/data/orders.json?t=${Date.now()}`);
                 if (!res.ok) {
-                    // 如果云端文件不存在，使用本地数据并尝试上传到云端
-                    if (res.status === 404) {
-                        orders = JSON.parse(localStorage.getItem('hengbing_orders') || '[]');
-                        if (orders.length > 0) {
-                            await saveToCloud();
-                            showToast('云端数据为空，已上传本地数据');
-                        }
-                        setSyncStatus('ok', '数据已同步');
-                        setLastSync();
-                        updateProjectSelects();
-                        updateDashboard();
-                        renderOrders();
-                        renderProjects();
-                        return;
+                    // 如果云端文件不存在，尝试上传本地数据
+                    if (res.status === 404 && localOrders.length > 0) {
+                        await saveToCloud();
+                        showToast('云端数据为空，已上传本地数据');
                     }
-                    throw new Error('读取失败');
+                    setSyncStatus('ok', '数据已同步');
+                    updateProjectSelects();
+                    updateDashboard();
+                    renderOrders();
+                    renderProjects();
+                    return;
                 }
+                
                 const cloudOrders = await res.json();
-                // 合并本地和云端数据（以本地为主，避免数据丢失）
-                const localOrders = JSON.parse(localStorage.getItem('hengbing_orders') || '[]');
+                
+                // 云端为空，本地有数据 -> 上传本地数据到云端
                 if (cloudOrders.length === 0 && localOrders.length > 0) {
                     orders = localOrders;
                     await saveToCloud();
                     showToast('云端数据为空，已恢复本地数据');
-                } else {
+                }
+                // 云端有数据，本地为空 -> 使用云端数据
+                else if (cloudOrders.length > 0 && localOrders.length === 0) {
                     orders = cloudOrders;
                     localStorage.setItem('hengbing_orders', JSON.stringify(orders));
+                    showToast('已从云端恢复数据');
                 }
+                // 云端和本地都有数据 -> 智能合并
+                else if (cloudOrders.length > 0 && localOrders.length > 0) {
+                    // 以本地数据为基础，合并云端独有的数据
+                    const localIds = new Set(localOrders.map(o => o.id));
+                    const cloudOnlyOrders = cloudOrders.filter(o => !localIds.has(o.id));
+                    
+                    if (cloudOnlyOrders.length > 0) {
+                        // 有云端独有的数据，合并后保存
+                        orders = [...localOrders, ...cloudOnlyOrders];
+                        localStorage.setItem('hengbing_orders', JSON.stringify(orders));
+                        await saveToCloud();
+                        showToast(`已合并 ${cloudOnlyOrders.length} 条云端数据`);
+                    }
+                    // 否则保持本地数据不变
+                }
+                // 两者都为空 -> 保持空数组
+                
                 setSyncStatus('ok', '数据已同步');
                 setLastSync();
             } catch (e) {
                 setSyncStatus('err', '同步失败');
-                orders = JSON.parse(localStorage.getItem('hengbing_orders') || '[]');
+                // 出错时保持本地数据不变
                 showToast('云端同步失败，显示本地缓存', 'warn');
             }
             updateProjectSelects();
