@@ -97,9 +97,39 @@
                     <div class="card p-4"><p class="text-gray-500 text-xs">高速费</p><p id="total-toll" class="text-lg font-bold number">0</p></div>
                     <div class="card p-4"><p class="text-gray-500 text-xs">车租</p><p id="total-rent" class="text-lg font-bold number">0</p></div>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-4 mb-5">
                     <div class="card p-4"><h3 class="font-semibold mb-3 text-sm">收入与利润趋势</h3><canvas id="incomeChart" height="200"></canvas></div>
                     <div class="card p-4"><h3 class="font-semibold mb-3 text-sm">成本结构占比</h3><canvas id="costChart" height="200"></canvas></div>
+                </div>
+                <!-- 项目数据分析 -->
+                <div class="card p-4 mb-5">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-semibold text-sm"><i class="fas fa-folder-open mr-2 text-blue-600"></i>项目数据分析</h3>
+                        <select id="dashboardProjectFilter" onchange="updateDashboard()" class="px-3 py-1.5 border rounded-lg text-sm">
+                            <option value="">全部项目</option>
+                        </select>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="text-sm">
+                            <thead>
+                                <tr>
+                                    <th>项目名称</th>
+                                    <th class="text-right">运单数</th>
+                                    <th class="text-right">总收入</th>
+                                    <th class="text-right">总成本</th>
+                                    <th class="text-right">总利润</th>
+                                    <th class="text-right">利润率</th>
+                                    <th class="text-right">平均利润/单</th>
+                                </tr>
+                            </thead>
+                            <tbody id="projectStatsTable"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- 项目对比图表 -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="card p-4"><h3 class="font-semibold mb-3 text-sm">各项目利润对比</h3><canvas id="projectProfitChart" height="200"></canvas></div>
+                    <div class="card p-4"><h3 class="font-semibold mb-3 text-sm">各项目运单数对比</h3><canvas id="projectOrderChart" height="200"></canvas></div>
                 </div>
             </div>
 
@@ -287,7 +317,7 @@
         let projects = JSON.parse(localStorage.getItem('hengbing_projects')) || ['南平恒冰'];
         let currentPage = 1;
         const pageSize = 15;
-        let incomeChart = null, costChart = null;
+        let incomeChart = null, costChart = null, projectProfitChart = null, projectOrderChart = null;
         let isSaving = false;
         let selectedIds = new Set();
         let importBuffer = null;
@@ -297,9 +327,35 @@
             setSyncStatus('ing', '同步中...');
             try {
                 const res = await fetch(`${PAGES_URL}/data/orders.json?t=${Date.now()}`);
-                if (!res.ok) throw new Error('读取失败');
-                orders = await res.json();
-                localStorage.setItem('hengbing_orders', JSON.stringify(orders));
+                if (!res.ok) {
+                    // 如果云端文件不存在，使用本地数据并尝试上传到云端
+                    if (res.status === 404) {
+                        orders = JSON.parse(localStorage.getItem('hengbing_orders') || '[]');
+                        if (orders.length > 0) {
+                            await saveToCloud();
+                            showToast('云端数据为空，已上传本地数据');
+                        }
+                        setSyncStatus('ok', '数据已同步');
+                        setLastSync();
+                        updateProjectSelects();
+                        updateDashboard();
+                        renderOrders();
+                        renderProjects();
+                        return;
+                    }
+                    throw new Error('读取失败');
+                }
+                const cloudOrders = await res.json();
+                // 合并本地和云端数据（以本地为主，避免数据丢失）
+                const localOrders = JSON.parse(localStorage.getItem('hengbing_orders') || '[]');
+                if (cloudOrders.length === 0 && localOrders.length > 0) {
+                    orders = localOrders;
+                    await saveToCloud();
+                    showToast('云端数据为空，已恢复本地数据');
+                } else {
+                    orders = cloudOrders;
+                    localStorage.setItem('hengbing_orders', JSON.stringify(orders));
+                }
                 setSyncStatus('ok', '数据已同步');
                 setLastSync();
             } catch (e) {
@@ -390,6 +446,8 @@
             document.getElementById('project').innerHTML = opts;
             document.getElementById('importProjectSelect').innerHTML = opts;
             document.getElementById('projectFilter').innerHTML = filterOpts;
+            const dashboardFilter = document.getElementById('dashboardProjectFilter');
+            if (dashboardFilter) dashboardFilter.innerHTML = filterOpts;
         }
 
         function calcTotal() {
@@ -406,7 +464,7 @@
 
         // ====== 仪表盘 ======
         function updateDashboard() {
-            const projectFilter = document.getElementById('projectFilter')?.value;
+            const projectFilter = document.getElementById('dashboardProjectFilter')?.value || document.getElementById('projectFilter')?.value;
             let data = orders;
             if (projectFilter) data = data.filter(o => o.project === projectFilter);
             
@@ -434,6 +492,7 @@
             document.getElementById('total-toll').textContent = totalToll.toFixed(2);
             document.getElementById('total-rent').textContent = totalRent.toFixed(2);
             renderCharts(data);
+            renderProjectStats();
         }
 
         function renderCharts(data) {
@@ -465,6 +524,80 @@
                 type: 'doughnut',
                 data: { labels: ['司机运费','电补','高速费','车租','维修费','人员成本'], 
                     datasets: [{data:costVals, backgroundColor:['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#6b7280']}]},
+                options: {responsive:true}
+            });
+        }
+
+        // 项目统计分析
+        function renderProjectStats() {
+            const tableBody = document.getElementById('projectStatsTable');
+            if (!tableBody) return;
+            
+            // 计算每个项目的统计数据
+            const projectStats = projects.map(project => {
+                const projectOrders = orders.filter(o => o.project === project);
+                const count = projectOrders.length;
+                if (count === 0) return null;
+                
+                const sum = (key) => projectOrders.reduce((s,o)=>s+parseFloat(o[key]||0),0);
+                const income = sum('income');
+                const cost = sum('driverFee') + sum('electricSubsidy') + sum('tollFee') + sum('rent') + sum('repairFee') + sum('laborCost');
+                const profit = income - cost;
+                const profitRate = income > 0 ? (profit / income * 100).toFixed(2) : 0;
+                const avgProfit = count > 0 ? (profit / count).toFixed(2) : 0;
+                
+                return { project, count, income, cost, profit, profitRate, avgProfit };
+            }).filter(s => s !== null);
+            
+            // 按利润排序
+            projectStats.sort((a, b) => b.profit - a.profit);
+            
+            // 渲染表格
+            tableBody.innerHTML = projectStats.map(s => `
+                <tr>
+                    <td class="font-medium">${s.project}</td>
+                    <td class="text-right">${s.count}</td>
+                    <td class="text-right number">${s.income.toFixed(2)}</td>
+                    <td class="text-right number">${s.cost.toFixed(2)}</td>
+                    <td class="text-right number ${s.profit>=0?'positive':'negative'}">${s.profit.toFixed(2)}</td>
+                    <td class="text-right">${s.profitRate}%</td>
+                    <td class="text-right number">${s.avgProfit}</td>
+                </tr>
+            `).join('') || '<tr><td colspan="7" class="text-center text-gray-500 py-4">暂无项目数据</td></tr>';
+            
+            // 渲染项目对比图表
+            renderProjectCharts(projectStats);
+        }
+        
+        function renderProjectCharts(stats) {
+            const labels = stats.map(s => s.project);
+            const profits = stats.map(s => s.profit);
+            const counts = stats.map(s => s.count);
+            
+            if (projectProfitChart) projectProfitChart.destroy();
+            projectProfitChart = new Chart(document.getElementById('projectProfitChart'), {
+                type: 'bar',
+                data: { 
+                    labels: labels, 
+                    datasets: [{
+                        label: '利润',
+                        data: profits,
+                        backgroundColor: profits.map(p => p >= 0 ? '#10b981' : '#ef4444')
+                    }]
+                },
+                options: {responsive:true, scales:{y:{beginAtZero:true}}}
+            });
+            
+            if (projectOrderChart) projectOrderChart.destroy();
+            projectOrderChart = new Chart(document.getElementById('projectOrderChart'), {
+                type: 'doughnut',
+                data: { 
+                    labels: labels, 
+                    datasets: [{
+                        data: counts,
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16']
+                    }]
+                },
                 options: {responsive:true}
             });
         }
