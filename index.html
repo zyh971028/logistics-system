@@ -268,10 +268,11 @@
 
     <script>
         // ==================== 云端数据配置 ====================
-        // 使用 GitHub Issues 存储数据，实现多人共享
+        // 使用 GitHub Pages 托管 JSON 文件，实现多人共享
         const REPO = 'zyh971028/logistics-system';
+        const PAGES_URL = 'https://zyh971028.github.io/logistics-system';
         const API_BASE = 'https://api.github.com';
-        // 写入用的 Token（只用于保存数据）
+        // 写入用的 Token
         const GITHUB_TOKEN = atob('Z2hwX1ZXdGFFWEtjdDdRbExVUkpFTTJ2YUxYNVlBcHhmNDhuczJP');
         // ========================================================
 
@@ -287,14 +288,11 @@
         async function loadFromCloud() {
             setSyncStatus('ing', '同步中...');
             try {
-                const res = await fetch(`${API_BASE}/repos/${REPO}/contents/${DATA_FILE}`, {
-                    headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' }
-                });
+                // 从 GitHub Pages 读取（无CORS限制）
+                const res = await fetch(`${PAGES_URL}/data/orders.json?t=${Date.now()}`);
                 if (!res.ok) throw new Error('读取失败');
-                const json = await res.json();
-                fileSha = json.sha;
-                const content = atob(json.content.replace(/\n/g, ''));
-                orders = JSON.parse(content) || [];
+                orders = await res.json();
+                localStorage.setItem('hengbing_orders', JSON.stringify(orders));
                 setSyncStatus('ok', '数据已同步');
                 setLastSync();
             } catch (e) {
@@ -313,17 +311,18 @@
             setSyncStatus('ing', '保存中...');
             setLoading(true);
             try {
-                // 先拿最新 sha 防冲突
-                const getRes = await fetch(`${API_BASE}/repos/${REPO}/contents/${DATA_FILE}`, {
+                // 先拿最新 sha
+                const getRes = await fetch(`${API_BASE}/repos/${REPO}/contents/data/orders.json`, {
                     headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' }
                 });
+                let sha = '';
                 if (getRes.ok) {
                     const getJson = await getRes.json();
-                    fileSha = getJson.sha;
+                    sha = getJson.sha;
                 }
                 const content = btoa(unescape(encodeURIComponent(JSON.stringify(orders, null, 2))));
-                const body = JSON.stringify({ message: 'Update orders', content, sha: fileSha });
-                const res = await fetch(`${API_BASE}/repos/${REPO}/contents/${DATA_FILE}`, {
+                const body = JSON.stringify({ message: 'Update orders', content, sha });
+                const res = await fetch(`${API_BASE}/repos/${REPO}/contents/data/orders.json`, {
                     method: 'PUT',
                     headers: {
                         Authorization: `Bearer ${GITHUB_TOKEN}`,
@@ -333,8 +332,6 @@
                     body
                 });
                 if (!res.ok) throw new Error('保存失败');
-                const json = await res.json();
-                fileSha = json.content.sha;
                 setSyncStatus('ok', '数据已同步');
                 setLastSync();
                 localStorage.setItem('hengbing_orders', JSON.stringify(orders));
