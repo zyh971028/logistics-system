@@ -310,7 +310,14 @@
         const REPO = 'zyh971028/logistics-system';
         const PAGES_URL = 'https://zyh971028.github.io/logistics-system';
         const API_BASE = 'https://api.github.com';
-        const GITHUB_TOKEN = atob('Z2hwX1ZXdGFFWEtjdDdRbExVUkpFTTJ2YUxYNVlBcHhmNDhuczJP');
+        // 从 localStorage 获取 Token，如果没有则提示用户输入
+        let GITHUB_TOKEN = localStorage.getItem('github_token');
+        if (!GITHUB_TOKEN) {
+            GITHUB_TOKEN = prompt('请输入 GitHub Personal Access Token（只需输入一次，将保存在本地）：');
+            if (GITHUB_TOKEN) {
+                localStorage.setItem('github_token', GITHUB_TOKEN);
+            }
+        }
         // =============================================
 
         let orders = [];
