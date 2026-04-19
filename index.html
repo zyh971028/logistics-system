@@ -162,9 +162,29 @@
                                 </tr>
                             </thead>
                             <tbody id="ordersTable"></tbody>
+                            <tfoot id="ordersTableFooter" class="bg-gray-100 font-semibold">
+                                <tr>
+                                    <td colspan="11" class="text-right pr-4">合计 (<span id="totalCount">0</span>条)</td>
+                                    <td class="text-right number" id="sumTotalKm">0</td>
+                                    <td class="text-right number" id="sumIncome">0.00</td>
+                                    <td class="text-right number" id="sumDriverFee">0.00</td>
+                                    <td class="text-right number" id="sumElectricSubsidy">0.00</td>
+                                    <td class="text-right number" id="sumTollFee">0.00</td>
+                                    <td class="text-right number" id="sumRent">0.00</td>
+                                    <td class="text-right number" id="sumProfit">0.00</td>
+                                    <td colspan="3"></td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
                     <div id="pagination" class="p-3 border-t flex justify-center gap-2"></div>
+                    <!-- 选中项合计显示 -->
+                    <div id="selectedSummary" class="hidden p-3 bg-blue-50 border-t">
+                        <span class="text-sm font-medium text-blue-800"><i class="fas fa-check-square mr-1"></i>已选中 <span id="selectedSummaryCount">0</span> 条：</span>
+                        <span class="text-sm ml-4">收入: <span id="selectedIncome" class="font-semibold">0.00</span></span>
+                        <span class="text-sm ml-4">成本: <span id="selectedCost" class="font-semibold">0.00</span></span>
+                        <span class="text-sm ml-4">利润: <span id="selectedProfit" class="font-semibold">0.00</span></span>
+                    </div>
                 </div>
             </div>
 
@@ -685,19 +705,81 @@
                 `<button onclick="goPage(${i})" class="px-3 py-1 rounded text-sm ${i===currentPage?'bg-blue-600 text-white':'bg-gray-200'}">${i}</button>`;
             document.getElementById('pagination').innerHTML = paginationHtml || '<span class="text-gray-500 text-sm">暂无数据</span>';
             
+            // 更新合计行
+            updateSummaryRow(filtered);
             updateBatchDeleteBtn();
+            updateSelectedSummary();
         }
 
         function goPage(page) { currentPage=page; renderOrders(); }
         function searchOrders() { currentPage=1; renderOrders(); }
         function filterOrders() { currentPage=1; renderOrders(); updateDashboard(); }
 
+        // 更新合计行
+        function updateSummaryRow(data) {
+            const sum = {
+                totalKm: 0, income: 0, driverFee: 0, electricSubsidy: 0,
+                tollFee: 0, rent: 0, profit: 0
+            };
+            data.forEach(o => {
+                sum.totalKm += parseFloat(o.totalKm || 0);
+                sum.income += parseFloat(o.income || 0);
+                sum.driverFee += parseFloat(o.driverFee || 0);
+                sum.electricSubsidy += parseFloat(o.electricSubsidy || 0);
+                sum.tollFee += parseFloat(o.tollFee || 0);
+                sum.rent += parseFloat(o.rent || 0);
+                sum.profit += parseFloat(o.profit || 0);
+            });
+            document.getElementById('totalCount').textContent = data.length;
+            document.getElementById('sumTotalKm').textContent = sum.totalKm.toFixed(1);
+            document.getElementById('sumIncome').textContent = sum.income.toFixed(2);
+            document.getElementById('sumDriverFee').textContent = sum.driverFee.toFixed(2);
+            document.getElementById('sumElectricSubsidy').textContent = sum.electricSubsidy.toFixed(2);
+            document.getElementById('sumTollFee').textContent = sum.tollFee.toFixed(2);
+            document.getElementById('sumRent').textContent = sum.rent.toFixed(2);
+            document.getElementById('sumProfit').textContent = sum.profit.toFixed(2);
+            document.getElementById('sumProfit').className = 'text-right number ' + (sum.profit >= 0 ? 'positive' : 'negative');
+        }
+
+        // 更新选中项合计
+        function updateSelectedSummary() {
+            const selectedOrders = orders.filter(o => selectedIds.has(o.id));
+            const sumDiv = document.getElementById('selectedSummary');
+            if (selectedOrders.length === 0) {
+                sumDiv.classList.add('hidden');
+                return;
+            }
+            let income = 0, cost = 0, profit = 0;
+            selectedOrders.forEach(o => {
+                income += parseFloat(o.income || 0);
+                cost += parseFloat(o.driverFee || 0) + parseFloat(o.electricSubsidy || 0) + 
+                        parseFloat(o.tollFee || 0) + parseFloat(o.rent || 0) + parseFloat(o.repairFee || 0) + parseFloat(o.laborCost || 0);
+                profit += parseFloat(o.profit || 0);
+            });
+            document.getElementById('selectedSummaryCount').textContent = selectedOrders.length;
+            document.getElementById('selectedIncome').textContent = income.toFixed(2);
+            document.getElementById('selectedCost').textContent = cost.toFixed(2);
+            document.getElementById('selectedProfit').textContent = profit.toFixed(2);
+            document.getElementById('selectedProfit').className = 'font-semibold ' + (profit >= 0 ? 'positive' : 'negative');
+            sumDiv.classList.remove('hidden');
+        }
+
         // ====== 批量选择 ======
         function toggleSelectAll() {
             const checked = document.getElementById('selectAll').checked;
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const dateFilter = document.getElementById('dateFilter').value;
+            const plateFilter = document.getElementById('plateFilter').value.toLowerCase();
             const projectFilter = document.getElementById('projectFilter').value;
-            let filtered = orders;
-            if (projectFilter) filtered = filtered.filter(o => o.project === projectFilter);
+            
+            let filtered = orders.filter(o => {
+                const matchSearch = !search || (o.trackingNo&&o.trackingNo.toLowerCase().includes(search)) || 
+                    (o.plate&&o.plate.toLowerCase().includes(search)) || (o.driver&&o.driver.toLowerCase().includes(search));
+                const matchDate = !dateFilter || o.date === dateFilter;
+                const matchPlate = !plateFilter || (o.plate&&o.plate.toLowerCase().includes(plateFilter));
+                const matchProject = !projectFilter || o.project === projectFilter;
+                return matchSearch && matchDate && matchPlate && matchProject;
+            });
             
             if (checked) {
                 filtered.forEach(o => selectedIds.add(o.id));
@@ -705,12 +787,14 @@
                 selectedIds.clear();
             }
             renderOrders();
+            updateSelectedSummary();
         }
 
         function toggleSelect(id) {
             if (selectedIds.has(id)) selectedIds.delete(id);
             else selectedIds.add(id);
             renderOrders();
+            updateSelectedSummary();
         }
 
         function updateBatchDeleteBtn() {
