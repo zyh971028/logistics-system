@@ -42,20 +42,14 @@
         .sync-ok { background: #d1fae5; color: #065f46; }
         .sync-ing { background: #fef3c7; color: #92400e; }
         .sync-err { background: #fee2e2; color: #991b1b; }
+        .row-selected { background: #dbeafe !important; }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
-
-    <!-- 顶部加载条 -->
-    <div id="loading-bar" class="hidden">
-        <div class="h-1 bg-blue-500 animate-pulse"></div>
-    </div>
-
-    <!-- Toast 提示 -->
+    <div id="loading-bar" class="hidden"><div class="h-1 bg-blue-500 animate-pulse"></div></div>
     <div id="toast" class="toast"></div>
 
     <div class="flex h-screen">
-        <!-- 侧边栏 -->
         <aside class="w-56 bg-gray-900 text-white flex flex-col">
             <div class="p-5 border-b border-gray-800">
                 <h1 class="text-base font-bold"><i class="fas fa-truck mr-2"></i>恒冰物流系统</h1>
@@ -67,107 +61,69 @@
                 <a href="#" onclick="showTab('orders')" id="nav-orders" class="block py-2.5 px-4 rounded-lg mb-1 hover:bg-gray-800 text-sm">
                     <i class="fas fa-list mr-2"></i>运单汇总
                 </a>
+                <a href="#" onclick="showTab('admin')" id="nav-admin" class="block py-2.5 px-4 rounded-lg mb-1 hover:bg-gray-800 text-sm">
+                    <i class="fas fa-cog mr-2"></i>管理员
+                </a>
             </nav>
             <div class="p-3 border-t border-gray-800">
-                <div id="sync-status" class="sync-badge sync-ok">
-                    <i class="fas fa-cloud"></i><span>数据已同步</span>
-                </div>
+                <div id="sync-status" class="sync-badge sync-ok"><i class="fas fa-cloud"></i><span>数据已同步</span></div>
                 <p class="text-xs text-gray-500 mt-2">最后同步: <span id="last-sync">--</span></p>
             </div>
         </aside>
 
-        <!-- 主内容区 -->
         <main class="flex-1 overflow-auto">
-            <!-- 顶部栏 -->
             <header class="bg-white shadow-sm px-5 py-3 flex justify-between items-center">
                 <h2 id="page-title" class="text-lg font-semibold">运营概览</h2>
                 <div class="flex gap-2 items-center">
-                    <button onclick="syncData()" class="text-sm text-gray-500 hover:text-blue-600" title="手动同步">
-                        <i class="fas fa-sync-alt mr-1"></i>同步
-                    </button>
+                    <button onclick="syncData()" class="text-sm text-gray-500 hover:text-blue-600" title="手动同步"><i class="fas fa-sync-alt mr-1"></i>同步</button>
                     <input type="file" id="importFile" accept=".xlsx,.xls,.csv" class="hidden" onchange="importData(event)">
-                    <button onclick="document.getElementById('importFile').click()" class="btn-success text-sm">
-                        <i class="fas fa-upload mr-1"></i>导入
-                    </button>
-                    <button onclick="exportData()" class="btn-primary text-sm">
-                        <i class="fas fa-download mr-1"></i>导出
-                    </button>
+                    <button onclick="document.getElementById('importFile').click()" class="btn-success text-sm"><i class="fas fa-upload mr-1"></i>导入</button>
+                    <button onclick="exportData()" class="btn-primary text-sm"><i class="fas fa-download mr-1"></i>导出</button>
                 </div>
             </header>
 
-            <!-- 运营概览板块 -->
+            <!-- 运营概览 -->
             <div id="dashboard-section" class="p-5">
                 <div class="grid grid-cols-5 gap-4 mb-5">
-                    <div class="card p-4">
-                        <p class="text-gray-500 text-xs">总运单数</p>
-                        <p id="total-orders" class="text-xl font-bold">0</p>
-                    </div>
-                    <div class="card p-4">
-                        <p class="text-gray-500 text-xs">总收入(元)</p>
-                        <p id="total-income" class="text-xl font-bold number">0</p>
-                    </div>
-                    <div class="card p-4">
-                        <p class="text-gray-500 text-xs">总成本(元)</p>
-                        <p id="total-cost" class="text-xl font-bold number">0</p>
-                    </div>
-                    <div class="card p-4">
-                        <p class="text-gray-500 text-xs">总利润(元)</p>
-                        <p id="total-profit" class="text-xl font-bold number">0</p>
-                    </div>
-                    <div class="card p-4">
-                        <p class="text-gray-500 text-xs">利润率</p>
-                        <p id="profit-rate" class="text-xl font-bold">0%</p>
-                    </div>
+                    <div class="card p-4"><p class="text-gray-500 text-xs">总运单数</p><p id="total-orders" class="text-xl font-bold">0</p></div>
+                    <div class="card p-4"><p class="text-gray-500 text-xs">总收入(元)</p><p id="total-income" class="text-xl font-bold number">0</p></div>
+                    <div class="card p-4"><p class="text-gray-500 text-xs">总成本(元)</p><p id="total-cost" class="text-xl font-bold number">0</p></div>
+                    <div class="card p-4"><p class="text-gray-500 text-xs">总利润(元)</p><p id="total-profit" class="text-xl font-bold number">0</p></div>
+                    <div class="card p-4"><p class="text-gray-500 text-xs">利润率</p><p id="profit-rate" class="text-xl font-bold">0%</p></div>
                 </div>
                 <div class="grid grid-cols-4 gap-4 mb-5">
-                    <div class="card p-4">
-                        <p class="text-gray-500 text-xs">司机运费</p>
-                        <p id="total-driver-fee" class="text-lg font-bold number">0</p>
-                    </div>
-                    <div class="card p-4">
-                        <p class="text-gray-500 text-xs">电补</p>
-                        <p id="total-electric" class="text-lg font-bold number">0</p>
-                    </div>
-                    <div class="card p-4">
-                        <p class="text-gray-500 text-xs">高速费</p>
-                        <p id="total-toll" class="text-lg font-bold number">0</p>
-                    </div>
-                    <div class="card p-4">
-                        <p class="text-gray-500 text-xs">车租</p>
-                        <p id="total-rent" class="text-lg font-bold number">0</p>
-                    </div>
+                    <div class="card p-4"><p class="text-gray-500 text-xs">司机运费</p><p id="total-driver-fee" class="text-lg font-bold number">0</p></div>
+                    <div class="card p-4"><p class="text-gray-500 text-xs">电补</p><p id="total-electric" class="text-lg font-bold number">0</p></div>
+                    <div class="card p-4"><p class="text-gray-500 text-xs">高速费</p><p id="total-toll" class="text-lg font-bold number">0</p></div>
+                    <div class="card p-4"><p class="text-gray-500 text-xs">车租</p><p id="total-rent" class="text-lg font-bold number">0</p></div>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
-                    <div class="card p-4">
-                        <h3 class="font-semibold mb-3 text-sm">收入与利润趋势</h3>
-                        <canvas id="incomeChart" height="200"></canvas>
-                    </div>
-                    <div class="card p-4">
-                        <h3 class="font-semibold mb-3 text-sm">成本结构占比</h3>
-                        <canvas id="costChart" height="200"></canvas>
-                    </div>
+                    <div class="card p-4"><h3 class="font-semibold mb-3 text-sm">收入与利润趋势</h3><canvas id="incomeChart" height="200"></canvas></div>
+                    <div class="card p-4"><h3 class="font-semibold mb-3 text-sm">成本结构占比</h3><canvas id="costChart" height="200"></canvas></div>
                 </div>
             </div>
 
-            <!-- 运单汇总板块 -->
+            <!-- 运单汇总 -->
             <div id="orders-section" class="p-5 hidden">
                 <div class="card">
                     <div class="p-3 border-b flex justify-between items-center">
-                        <div class="flex gap-3">
-                            <input type="text" id="searchInput" placeholder="搜索运单号/车牌/驾驶员"
-                                   class="px-3 py-1.5 border rounded-lg w-56 text-sm" onkeyup="searchOrders()">
+                        <div class="flex gap-3 items-center flex-wrap">
+                            <select id="projectFilter" onchange="filterOrders()" class="px-3 py-1.5 border rounded-lg text-sm min-w-[120px]"><option value="">全部项目</option></select>
+                            <input type="text" id="searchInput" placeholder="搜索运单号/车牌/驾驶员" class="px-3 py-1.5 border rounded-lg w-56 text-sm" onkeyup="searchOrders()">
                             <input type="date" id="dateFilter" onchange="filterOrders()" class="px-3 py-1.5 border rounded-lg text-sm">
                             <input type="text" id="plateFilter" placeholder="车牌号" onkeyup="filterOrders()" class="px-3 py-1.5 border rounded-lg w-32 text-sm">
                         </div>
-                        <button onclick="openModal()" class="btn-primary text-sm">
-                            <i class="fas fa-plus mr-1"></i>新增运单
-                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="batchDelete()" id="batchDeleteBtn" class="btn-danger text-sm hidden"><i class="fas fa-trash mr-1"></i>批量删除(<span id="selectedCount">0</span>)</button>
+                            <button onclick="openModal()" class="btn-primary text-sm"><i class="fas fa-plus mr-1"></i>新增运单</button>
+                        </div>
                     </div>
                     <div class="table-container">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>序列</th><th>运单号</th><th>日期</th><th>车牌</th><th>驾驶员</th>
+                                    <th><input type="checkbox" id="selectAll" onclick="toggleSelectAll()"></th>
+                                    <th>项目</th><th>序列</th><th>运单号</th><th>日期</th><th>车牌</th><th>驾驶员</th>
                                     <th>始发地</th><th>出场时间</th><th>经停点1</th><th>到店时间</th>
                                     <th>总里程</th><th class="text-right">收入</th><th class="text-right">司机运费</th>
                                     <th class="text-right">电补</th><th class="text-right">高速费</th>
@@ -181,7 +137,60 @@
                     <div id="pagination" class="p-3 border-t flex justify-center gap-2"></div>
                 </div>
             </div>
+
+            <!-- 管理员 -->
+            <div id="admin-section" class="p-5 hidden">
+                <div class="grid grid-cols-2 gap-5">
+                    <div class="card p-5">
+                        <h3 class="font-semibold mb-4 flex items-center"><i class="fas fa-folder-open mr-2 text-blue-600"></i>项目管理</h3>
+                        <div class="mb-4 flex gap-2">
+                            <input type="text" id="newProjectName" placeholder="输入项目名称" class="flex-1 px-3 py-2 border rounded-lg text-sm">
+                            <button onclick="addProject()" class="btn-primary text-sm"><i class="fas fa-plus mr-1"></i>新增</button>
+                        </div>
+                        <table class="text-sm">
+                            <thead><tr><th>项目名称</th><th>运单数</th><th>操作</th></tr></thead>
+                            <tbody id="projectTable"></tbody>
+                        </table>
+                    </div>
+                    <div class="card p-5">
+                        <h3 class="font-semibold mb-4 flex items-center"><i class="fas fa-database mr-2 text-green-600"></i>数据管理</h3>
+                        <div class="space-y-3">
+                            <div class="p-3 bg-gray-50 rounded-lg">
+                                <p class="text-sm font-medium mb-2">数据备份</p>
+                                <button onclick="backupData()" class="btn-secondary text-sm"><i class="fas fa-download mr-1"></i>下载备份</button>
+                            </div>
+                            <div class="p-3 bg-gray-50 rounded-lg">
+                                <p class="text-sm font-medium mb-2">数据恢复</p>
+                                <input type="file" id="restoreFile" accept=".json" class="hidden" onchange="restoreData(event)">
+                                <button onclick="document.getElementById('restoreFile').click()" class="btn-secondary text-sm"><i class="fas fa-upload mr-1"></i>上传恢复</button>
+                            </div>
+                            <div class="p-3 bg-red-50 rounded-lg">
+                                <p class="text-sm font-medium mb-2 text-red-600">危险操作</p>
+                                <button onclick="clearAllData()" class="btn-danger text-sm"><i class="fas fa-trash mr-1"></i>清空所有数据</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
+    </div>
+
+    <!-- 导入项目选择弹窗 -->
+    <div id="importProjectModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">选择导入项目</h3>
+                <button onclick="closeImportModal()" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="form-group">
+                <label>将数据导入到项目</label>
+                <select id="importProjectSelect" class="w-full px-3 py-2 border rounded-lg"><option value="">请选择项目</option></select>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button onclick="closeImportModal()" class="btn-secondary">取消</button>
+                <button onclick="confirmImport()" class="btn-primary">确认导入</button>
+            </div>
+        </div>
     </div>
 
     <!-- 新增/编辑弹窗 -->
@@ -195,6 +204,10 @@
                 <input type="hidden" id="orderId">
                 <div class="section-title">基本信息</div>
                 <div class="grid-4">
+                    <div class="form-group">
+                        <label>所属项目 <span class="text-red-500">*</span></label>
+                        <select id="project" required class="bg-white"><option value="">请选择项目</option></select>
+                    </div>
                     <div class="form-group"><label>序列</label><input type="number" id="seq" required></div>
                     <div class="form-group"><label>运单号</label><input type="text" id="trackingNo" required placeholder="如：SMHB2604000001"></div>
                     <div class="form-group"><label>日期</label><input type="date" id="date" required></div>
@@ -203,9 +216,7 @@
                     <div class="form-group"><label>始发地</label><input type="text" id="origin" required></div>
                     <div class="form-group"><label>出场时间</label><input type="time" id="departureTime"></div>
                     <div class="form-group"><label>6厂配送</label>
-                        <select id="isFactoryDelivery">
-                            <option value="">请选择</option><option value="是">是</option><option value="否">否</option>
-                        </select>
+                        <select id="isFactoryDelivery"><option value="">请选择</option><option value="是">是</option><option value="否">否</option></select>
                     </div>
                 </div>
                 <div class="section-title">经停点信息</div>
@@ -252,9 +263,7 @@
                 <div class="grid-4">
                     <div class="form-group"><label>到店时效</label><input type="text" id="arrivalTime"></div>
                     <div class="form-group"><label>回单</label>
-                        <select id="receipt">
-                            <option value="">请选择</option><option value="已上传">已上传</option><option value="未上传">未上传</option>
-                        </select>
+                        <select id="receipt"><option value="">请选择</option><option value="已上传">已上传</option><option value="未上传">未上传</option></select>
                     </div>
                     <div class="form-group"><label>温控跟踪</label><input type="text" id="tempTracking"></div>
                 </div>
@@ -267,28 +276,26 @@
     </div>
 
     <script>
-        // ==================== 云端数据配置 ====================
-        // 使用 GitHub Pages 托管 JSON 文件，实现多人共享
+        // ==================== 配置 ====================
         const REPO = 'zyh971028/logistics-system';
         const PAGES_URL = 'https://zyh971028.github.io/logistics-system';
         const API_BASE = 'https://api.github.com';
-        // 写入用的 Token
         const GITHUB_TOKEN = atob('Z2hwX1ZXdGFFWEtjdDdRbExVUkpFTTJ2YUxYNVlBcHhmNDhuczJP');
-        // ========================================================
+        // =============================================
 
         let orders = [];
+        let projects = JSON.parse(localStorage.getItem('hengbing_projects')) || ['南平恒冰'];
         let currentPage = 1;
         const pageSize = 15;
-        let incomeChart = null;
-        let costChart = null;
-        let fileSha = '';
+        let incomeChart = null, costChart = null;
         let isSaving = false;
+        let selectedIds = new Set();
+        let importBuffer = null;
 
         // ====== 云端读写 ======
         async function loadFromCloud() {
             setSyncStatus('ing', '同步中...');
             try {
-                // 从 GitHub Pages 读取（无CORS限制）
                 const res = await fetch(`${PAGES_URL}/data/orders.json?t=${Date.now()}`);
                 if (!res.ok) throw new Error('读取失败');
                 orders = await res.json();
@@ -297,12 +304,13 @@
                 setLastSync();
             } catch (e) {
                 setSyncStatus('err', '同步失败');
-                // 降级读本地
                 orders = JSON.parse(localStorage.getItem('hengbing_orders') || '[]');
-                showToast('云端同步失败，显示本地缓存数据', 'warn');
+                showToast('云端同步失败，显示本地缓存', 'warn');
             }
+            updateProjectSelects();
             updateDashboard();
             renderOrders();
+            renderProjects();
         }
 
         async function saveToCloud() {
@@ -311,7 +319,6 @@
             setSyncStatus('ing', '保存中...');
             setLoading(true);
             try {
-                // 先拿最新 sha
                 const getRes = await fetch(`${API_BASE}/repos/${REPO}/contents/data/orders.json`, {
                     headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' }
                 });
@@ -321,188 +328,171 @@
                     sha = getJson.sha;
                 }
                 const content = btoa(unescape(encodeURIComponent(JSON.stringify(orders, null, 2))));
-                const body = JSON.stringify({ message: 'Update orders', content, sha });
                 const res = await fetch(`${API_BASE}/repos/${REPO}/contents/data/orders.json`, {
                     method: 'PUT',
-                    headers: {
-                        Authorization: `Bearer ${GITHUB_TOKEN}`,
-                        Accept: 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json'
-                    },
-                    body
+                    headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: 'Update orders', content, sha })
                 });
                 if (!res.ok) throw new Error('保存失败');
                 setSyncStatus('ok', '数据已同步');
                 setLastSync();
                 localStorage.setItem('hengbing_orders', JSON.stringify(orders));
-                showToast('保存成功，数据已同步到云端');
+                showToast('保存成功');
             } catch (e) {
                 setSyncStatus('err', '保存失败');
-                showToast('云端保存失败，请重试', 'error');
+                showToast('云端保存失败', 'error');
             }
             setLoading(false);
             isSaving = false;
         }
 
-        async function syncData() {
-            await loadFromCloud();
-            showToast('数据已刷新');
-        }
+        async function syncData() { await loadFromCloud(); showToast('数据已刷新'); }
 
         // ====== UI 辅助 ======
-        function setLoading(show) {
-            document.getElementById('loading-bar').classList.toggle('hidden', !show);
-        }
-
+        function setLoading(show) { document.getElementById('loading-bar').classList.toggle('hidden', !show); }
         function setSyncStatus(type, text) {
             const el = document.getElementById('sync-status');
             el.className = 'sync-badge sync-' + type;
-            const icon = type === 'ok' ? 'fa-cloud' : type === 'ing' ? 'fa-spinner fa-spin' : 'fa-exclamation-triangle';
-            el.innerHTML = `<i class="fas ${icon}"></i><span>${text}</span>`;
+            el.innerHTML = `<i class="fas ${type==='ok'?'fa-cloud':type==='ing'?'fa-spinner fa-spin':'fa-exclamation-triangle'}"></i><span>${text}</span>`;
         }
-
-        function setLastSync() {
-            document.getElementById('last-sync').textContent = new Date().toLocaleTimeString('zh-CN');
-        }
-
-        function showToast(msg, type = 'success') {
+        function setLastSync() { document.getElementById('last-sync').textContent = new Date().toLocaleTimeString('zh-CN'); }
+        function showToast(msg, type='success') {
             const el = document.getElementById('toast');
             el.textContent = msg;
-            el.style.background = type === 'error' ? '#dc2626' : type === 'warn' ? '#d97706' : '#1f2937';
+            el.style.background = type==='error'?'#dc2626':type==='warn'?'#d97706':'#1f2937';
             el.style.display = 'block';
-            setTimeout(() => { el.style.display = 'none'; }, 3000);
+            setTimeout(()=>el.style.display='none', 3000);
         }
 
         // ====== 初始化 ======
         document.addEventListener('DOMContentLoaded', () => {
             loadFromCloud();
-            // 每60秒自动同步一次
             setInterval(loadFromCloud, 60000);
         });
 
         function showTab(tab) {
-            document.getElementById('dashboard-section').classList.add('hidden');
-            document.getElementById('orders-section').classList.add('hidden');
-            document.getElementById('nav-dashboard').classList.remove('bg-blue-600');
-            document.getElementById('nav-orders').classList.remove('bg-blue-600');
-            if (tab === 'dashboard') {
-                document.getElementById('dashboard-section').classList.remove('hidden');
-                document.getElementById('nav-dashboard').classList.add('bg-blue-600');
-                document.getElementById('page-title').textContent = '运营概览';
-                updateDashboard();
-            } else {
-                document.getElementById('orders-section').classList.remove('hidden');
-                document.getElementById('nav-orders').classList.add('bg-blue-600');
-                document.getElementById('page-title').textContent = '运单汇总';
-                renderOrders();
-            }
+            ['dashboard','orders','admin'].forEach(t => {
+                document.getElementById(t+'-section').classList.add('hidden');
+                document.getElementById('nav-'+t).classList.remove('bg-blue-600');
+            });
+            document.getElementById(tab+'-section').classList.remove('hidden');
+            document.getElementById('nav-'+tab).classList.add('bg-blue-600');
+            document.getElementById('page-title').textContent = 
+                tab==='dashboard'?'运营概览':tab==='orders'?'运单汇总':'管理员';
+            if (tab==='dashboard') updateDashboard();
+            if (tab==='orders') renderOrders();
+            if (tab==='admin') renderProjects();
+        }
+
+        function updateProjectSelects() {
+            const opts = '<option value="">请选择项目</option>' + projects.map(p => `<option value="${p}">${p}</option>`).join('');
+            const filterOpts = '<option value="">全部项目</option>' + projects.map(p => `<option value="${p}">${p}</option>`).join('');
+            document.getElementById('project').innerHTML = opts;
+            document.getElementById('importProjectSelect').innerHTML = opts;
+            document.getElementById('projectFilter').innerHTML = filterOpts;
         }
 
         function calcTotal() {
-            const a = parseFloat(document.getElementById('outboundKm').value) || 0;
-            const b = parseFloat(document.getElementById('returnKm').value) || 0;
-            document.getElementById('totalKm').value = (a + b).toFixed(1);
+            const a = parseFloat(document.getElementById('outboundKm').value)||0;
+            const b = parseFloat(document.getElementById('returnKm').value)||0;
+            document.getElementById('totalKm').value = (a+b).toFixed(1);
         }
-
         function calcProfit() {
-            const income = parseFloat(document.getElementById('income').value) || 0;
+            const income = parseFloat(document.getElementById('income').value)||0;
             const costs = ['driverFee','electricSubsidy','tollFee','rent','repairFee','laborCost']
-                .reduce((sum, id) => sum + (parseFloat(document.getElementById(id).value) || 0), 0);
-            document.getElementById('profit').value = (income - costs).toFixed(2);
+                .reduce((s,id)=>s+(parseFloat(document.getElementById(id).value)||0),0);
+            document.getElementById('profit').value = (income-costs).toFixed(2);
         }
 
+        // ====== 仪表盘 ======
         function updateDashboard() {
-            const total = orders.length;
-            const totalIncome = orders.reduce((sum, o) => sum + parseFloat(o.income || 0), 0);
-            const totalDriverFee = orders.reduce((sum, o) => sum + parseFloat(o.driverFee || 0), 0);
-            const totalElectric = orders.reduce((sum, o) => sum + parseFloat(o.electricSubsidy || 0), 0);
-            const totalToll = orders.reduce((sum, o) => sum + parseFloat(o.tollFee || 0), 0);
-            const totalRent = orders.reduce((sum, o) => sum + parseFloat(o.rent || 0), 0);
-            const totalRepair = orders.reduce((sum, o) => sum + parseFloat(o.repairFee || 0), 0);
-            const totalLabor = orders.reduce((sum, o) => sum + parseFloat(o.laborCost || 0), 0);
+            const projectFilter = document.getElementById('projectFilter')?.value;
+            let data = orders;
+            if (projectFilter) data = data.filter(o => o.project === projectFilter);
+            
+            const total = data.length;
+            const sum = (key) => data.reduce((s,o)=>s+parseFloat(o[key]||0),0);
+            const totalIncome = sum('income');
+            const totalDriverFee = sum('driverFee');
+            const totalElectric = sum('electricSubsidy');
+            const totalToll = sum('tollFee');
+            const totalRent = sum('rent');
+            const totalRepair = sum('repairFee');
+            const totalLabor = sum('laborCost');
             const totalCost = totalDriverFee + totalElectric + totalToll + totalRent + totalRepair + totalLabor;
             const totalProfit = totalIncome - totalCost;
-            const profitRate = totalIncome > 0 ? (totalProfit / totalIncome * 100).toFixed(2) : 0;
+            const profitRate = totalIncome>0?(totalProfit/totalIncome*100).toFixed(2):0;
 
             document.getElementById('total-orders').textContent = total;
             document.getElementById('total-income').textContent = totalIncome.toFixed(2);
             document.getElementById('total-cost').textContent = totalCost.toFixed(2);
             document.getElementById('total-profit').textContent = totalProfit.toFixed(2);
-            document.getElementById('profit-rate').textContent = profitRate + '%';
-            document.getElementById('total-profit').className = 'text-xl font-bold number ' + (totalProfit >= 0 ? 'positive' : 'negative');
+            document.getElementById('total-profit').className = 'text-xl font-bold number ' + (totalProfit>=0?'positive':'negative');
+            document.getElementById('profit-rate').textContent = profitRate+'%';
             document.getElementById('total-driver-fee').textContent = totalDriverFee.toFixed(2);
             document.getElementById('total-electric').textContent = totalElectric.toFixed(2);
             document.getElementById('total-toll').textContent = totalToll.toFixed(2);
             document.getElementById('total-rent').textContent = totalRent.toFixed(2);
-            renderCharts();
+            renderCharts(data);
         }
 
-        function renderCharts() {
+        function renderCharts(data) {
             const dateMap = {};
-            orders.forEach(o => {
+            data.forEach(o => {
                 if (!o.date) return;
-                if (!dateMap[o.date]) dateMap[o.date] = { income: 0, profit: 0 };
-                dateMap[o.date].income += parseFloat(o.income || 0);
+                if (!dateMap[o.date]) dateMap[o.date] = {income:0, profit:0};
+                dateMap[o.date].income += parseFloat(o.income||0);
                 const cost = ['driverFee','electricSubsidy','tollFee','rent','repairFee','laborCost']
-                    .reduce((sum, k) => sum + parseFloat(o[k] || 0), 0);
-                dateMap[o.date].profit += (parseFloat(o.income || 0) - cost);
+                    .reduce((s,k)=>s+parseFloat(o[k]||0),0);
+                dateMap[o.date].profit += (parseFloat(o.income||0)-cost);
             });
             const dates = Object.keys(dateMap).sort().slice(-7);
-
-            const incomeCtx = document.getElementById('incomeChart').getContext('2d');
+            
             if (incomeChart) incomeChart.destroy();
-            incomeChart = new Chart(incomeCtx, {
+            incomeChart = new Chart(document.getElementById('incomeChart'), {
                 type: 'bar',
-                data: {
-                    labels: dates.map(d => d.slice(5)),
-                    datasets: [
-                        { label: '收入', data: dates.map(d => dateMap[d].income), backgroundColor: '#3b82f6' },
-                        { label: '利润', data: dates.map(d => dateMap[d].profit), backgroundColor: '#10b981' }
-                    ]
-                },
-                options: { responsive: true, scales: { y: { beginAtZero: true } } }
+                data: { labels: dates.map(d=>d.slice(5)), datasets: [
+                    {label:'收入', data: dates.map(d=>dateMap[d].income), backgroundColor:'#3b82f6'},
+                    {label:'利润', data: dates.map(d=>dateMap[d].profit), backgroundColor:'#10b981'}
+                ]},
+                options: {responsive:true, scales:{y:{beginAtZero:true}}}
             });
 
-            const costCtx = document.getElementById('costChart').getContext('2d');
             if (costChart) costChart.destroy();
-            const costVals = [
-                orders.reduce((s,o) => s+parseFloat(o.driverFee||0), 0),
-                orders.reduce((s,o) => s+parseFloat(o.electricSubsidy||0), 0),
-                orders.reduce((s,o) => s+parseFloat(o.tollFee||0), 0),
-                orders.reduce((s,o) => s+parseFloat(o.rent||0), 0),
-                orders.reduce((s,o) => s+parseFloat(o.repairFee||0), 0),
-                orders.reduce((s,o) => s+parseFloat(o.laborCost||0), 0)
-            ];
-            costChart = new Chart(costCtx, {
+            const costVals = ['driverFee','electricSubsidy','tollFee','rent','repairFee','laborCost']
+                .map(k=>data.reduce((s,o)=>s+parseFloat(o[k]||0),0));
+            costChart = new Chart(document.getElementById('costChart'), {
                 type: 'doughnut',
-                data: {
-                    labels: ['司机运费','电补','高速费','车租','维修费','人员成本'],
-                    datasets: [{ data: costVals, backgroundColor: ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#6b7280'] }]
-                },
-                options: { responsive: true }
+                data: { labels: ['司机运费','电补','高速费','车租','维修费','人员成本'], 
+                    datasets: [{data:costVals, backgroundColor:['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#6b7280']}]},
+                options: {responsive:true}
             });
         }
 
+        // ====== 运单列表 ======
         function renderOrders() {
             const search = document.getElementById('searchInput').value.toLowerCase();
             const dateFilter = document.getElementById('dateFilter').value;
             const plateFilter = document.getElementById('plateFilter').value.toLowerCase();
+            const projectFilter = document.getElementById('projectFilter').value;
+            
             let filtered = orders.filter(o => {
-                const matchSearch = !search ||
-                    (o.trackingNo && o.trackingNo.toLowerCase().includes(search)) ||
-                    (o.plate && o.plate.toLowerCase().includes(search)) ||
-                    (o.driver && o.driver.toLowerCase().includes(search));
+                const matchSearch = !search || (o.trackingNo&&o.trackingNo.toLowerCase().includes(search)) || 
+                    (o.plate&&o.plate.toLowerCase().includes(search)) || (o.driver&&o.driver.toLowerCase().includes(search));
                 const matchDate = !dateFilter || o.date === dateFilter;
-                const matchPlate = !plateFilter || (o.plate && o.plate.toLowerCase().includes(plateFilter));
-                return matchSearch && matchDate && matchPlate;
+                const matchPlate = !plateFilter || (o.plate&&o.plate.toLowerCase().includes(plateFilter));
+                const matchProject = !projectFilter || o.project === projectFilter;
+                return matchSearch && matchDate && matchPlate && matchProject;
             });
 
-            const totalPages = Math.ceil(filtered.length / pageSize);
-            const start = (currentPage - 1) * pageSize;
-            const pageData = filtered.slice(start, start + pageSize);
+            const totalPages = Math.ceil(filtered.length/pageSize);
+            const start = (currentPage-1)*pageSize;
+            const pageData = filtered.slice(start, start+pageSize);
 
             document.getElementById('ordersTable').innerHTML = pageData.map(order => `
-                <tr>
+                <tr class="${selectedIds.has(order.id)?'row-selected':''}">
+                    <td><input type="checkbox" ${selectedIds.has(order.id)?'checked':''} onchange="toggleSelect('${order.id}')"></td>
+                    <td>${order.project||''}</td>
                     <td>${order.seq||''}</td><td>${order.trackingNo||''}</td><td>${order.date||''}</td>
                     <td>${order.plate||''}</td><td>${order.driver||''}</td><td>${order.origin||''}</td>
                     <td>${order.departureTime||''}</td><td>${order.stop1||''}</td><td>${order.stop1Time||''}</td>
@@ -522,35 +512,79 @@
             `).join('');
 
             let paginationHtml = '';
-            for (let i = 1; i <= totalPages; i++) {
-                paginationHtml += `<button onclick="goPage(${i})" class="px-3 py-1 rounded text-sm ${i===currentPage?'bg-blue-600 text-white':'bg-gray-200'}">${i}</button>`;
-            }
+            for (let i=1; i<=totalPages; i++) paginationHtml += 
+                `<button onclick="goPage(${i})" class="px-3 py-1 rounded text-sm ${i===currentPage?'bg-blue-600 text-white':'bg-gray-200'}">${i}</button>`;
             document.getElementById('pagination').innerHTML = paginationHtml || '<span class="text-gray-500 text-sm">暂无数据</span>';
+            
+            updateBatchDeleteBtn();
         }
 
-        function goPage(page) { currentPage = page; renderOrders(); }
-        function searchOrders() { currentPage = 1; renderOrders(); }
-        function filterOrders() { currentPage = 1; renderOrders(); }
+        function goPage(page) { currentPage=page; renderOrders(); }
+        function searchOrders() { currentPage=1; renderOrders(); }
+        function filterOrders() { currentPage=1; renderOrders(); updateDashboard(); }
 
+        // ====== 批量选择 ======
+        function toggleSelectAll() {
+            const checked = document.getElementById('selectAll').checked;
+            const projectFilter = document.getElementById('projectFilter').value;
+            let filtered = orders;
+            if (projectFilter) filtered = filtered.filter(o => o.project === projectFilter);
+            
+            if (checked) {
+                filtered.forEach(o => selectedIds.add(o.id));
+            } else {
+                selectedIds.clear();
+            }
+            renderOrders();
+        }
+
+        function toggleSelect(id) {
+            if (selectedIds.has(id)) selectedIds.delete(id);
+            else selectedIds.add(id);
+            renderOrders();
+        }
+
+        function updateBatchDeleteBtn() {
+            const btn = document.getElementById('batchDeleteBtn');
+            const count = document.getElementById('selectedCount');
+            if (selectedIds.size > 0) {
+                btn.classList.remove('hidden');
+                count.textContent = selectedIds.size;
+            } else {
+                btn.classList.add('hidden');
+            }
+        }
+
+        async function batchDelete() {
+            if (!confirm(`确定删除选中的 ${selectedIds.size} 条运单？`)) return;
+            orders = orders.filter(o => !selectedIds.has(o.id));
+            selectedIds.clear();
+            await saveToCloud();
+            renderOrders();
+            updateDashboard();
+        }
+
+        // ====== 运单增删改 ======
         function openModal() {
             document.getElementById('orderForm').reset();
             document.getElementById('orderId').value = '';
             document.getElementById('modalTitle').textContent = '新增运单';
-            document.getElementById('date').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('date').value = new Date().toISOString().slice(0,10);
+            updateProjectSelects();
             document.getElementById('orderModal').style.display = 'block';
         }
-
         function closeModal() { document.getElementById('orderModal').style.display = 'none'; }
 
         function editOrder(id) {
             const order = orders.find(o => o.id === id);
             if (!order) return;
-            const fields = ['seq','trackingNo','date','plate','driver','origin','departureTime','isFactoryDelivery',
+            updateProjectSelects();
+            document.getElementById('orderId').value = order.id;
+            const fields = ['project','seq','trackingNo','date','plate','driver','origin','departureTime','isFactoryDelivery',
                 'stop1','stop1Time','stop2','stop2Time','stop3','stop3Time','stop4','stop4Time','stop5','stop5Time','stop6','stop6Time',
                 'outboundKm','returnKm','totalKm','income','driverFee','electricSubsidy','tollFee','rent','repairFee','laborCost',
                 'profit','arrivalTime','receipt','tempTracking'];
-            document.getElementById('orderId').value = order.id;
-            fields.forEach(f => { const el = document.getElementById(f); if (el) el.value = order[f] || ''; });
+            fields.forEach(f => { const el = document.getElementById(f); if(el) el.value = order[f]||''; });
             document.getElementById('modalTitle').textContent = '编辑运单';
             document.getElementById('orderModal').style.display = 'block';
         }
@@ -558,111 +592,203 @@
         async function saveOrder(e) {
             e.preventDefault();
             const id = document.getElementById('orderId').value;
-            const fields = ['seq','trackingNo','date','plate','driver','origin','departureTime','isFactoryDelivery',
+            const order = { id: id || Date.now().toString() };
+            const fields = ['project','seq','trackingNo','date','plate','driver','origin','departureTime','isFactoryDelivery',
                 'stop1','stop1Time','stop2','stop2Time','stop3','stop3Time','stop4','stop4Time','stop5','stop5Time','stop6','stop6Time',
                 'outboundKm','returnKm','totalKm','income','driverFee','electricSubsidy','tollFee','rent','repairFee','laborCost',
                 'profit','arrivalTime','receipt','tempTracking'];
-            const order = { id: id || Date.now().toString() };
-            fields.forEach(f => { const el = document.getElementById(f); if (el) order[f] = el.value; });
-
+            fields.forEach(f => { const el = document.getElementById(f); if(el) order[f] = el.value; });
+            
             if (id) {
                 const idx = orders.findIndex(o => o.id === id);
                 if (idx >= 0) orders[idx] = order;
             } else {
                 orders.push(order);
             }
-
+            await saveToCloud();
             closeModal();
             renderOrders();
             updateDashboard();
-            await saveToCloud();
         }
 
         async function deleteOrder(id) {
             if (!confirm('确定删除该运单？')) return;
             orders = orders.filter(o => o.id !== id);
+            await saveToCloud();
             renderOrders();
             updateDashboard();
-            await saveToCloud();
         }
 
-        async function importData(e) {
+        // ====== 导入导出 ======
+        function importData(e) {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = async function(ev) {
+            reader.onload = function(e) {
                 try {
-                    const data = new Uint8Array(ev.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type:'array'});
                     const sheet = workbook.Sheets['汇总'] || workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(sheet);
-                    const fieldMap = {
-                        '序列':'seq','运单号':'trackingNo','日期':'date','车牌':'plate','驾驶员':'driver',
-                        '始发地':'origin','出场时间':'departureTime','经停点1':'stop1','到店时间':'stop1Time',
-                        '经停点2':'stop2','到店时间.1':'stop2Time','经停点3':'stop3','到店时间.2':'stop3Time',
-                        '经停点4':'stop4','到店时间.3':'stop4Time','经停点5':'stop5','到店时间.4':'stop5Time',
-                        '经停点6':'stop6','到店时间.5':'stop6Time','6厂配送':'isFactoryDelivery',
-                        '去程km':'outboundKm','回城km':'returnKm','总里程':'totalKm',
-                        '收入':'income','司机运费':'driverFee','电补':'electricSubsidy','高速费':'tollFee',
-                        '车租':'rent','维修费':'repairFee','人员成本':'laborCost','利润':'profit',
-                        '到店时效':'arrivalTime','回单':'receipt','温控跟踪':'tempTracking'
-                    };
-                    const imported = jsonData.map(row => {
-                        const order = { id: Date.now().toString() + Math.random().toString(36).substr(2, 5) };
-                        for (let key in row) {
-                            const mk = fieldMap[key];
-                            if (mk) order[mk] = row[key];
-                        }
-                        if (order.date && typeof order.date === 'number') {
-                            const d = new Date((order.date - 25569) * 86400 * 1000);
-                            order.date = d.toISOString().slice(0, 10);
-                        }
-                        ['departureTime','stop1Time','stop2Time','stop3Time','stop4Time','stop5Time','stop6Time'].forEach(f => {
-                            if (order[f] && typeof order[f] === 'number') {
-                                const h = Math.floor(order[f] * 24);
-                                const m = Math.round((order[f] * 24 - h) * 60);
-                                order[f] = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
-                            }
-                        });
-                        return order;
-                    }).filter(o => o.trackingNo);
-
-                    orders = orders.concat(imported);
-                    renderOrders();
-                    updateDashboard();
-                    await saveToCloud();
-                    showToast(`成功导入 ${imported.length} 条运单并同步`);
-                } catch (err) {
-                    showToast('导入失败：' + err.message, 'error');
+                    importBuffer = XLSX.utils.sheet_to_json(sheet);
+                    // 显示项目选择弹窗
+                    updateProjectSelects();
+                    document.getElementById('importProjectModal').style.display = 'block';
+                } catch(err) {
+                    alert('导入失败：' + err.message);
                 }
             };
             reader.readAsArrayBuffer(file);
             e.target.value = '';
         }
 
+        function closeImportModal() { document.getElementById('importProjectModal').style.display = 'none'; importBuffer = null; }
+
+        async function confirmImport() {
+            const project = document.getElementById('importProjectSelect').value;
+            if (!project) { alert('请选择项目'); return; }
+            if (!importBuffer || importBuffer.length === 0) { closeImportModal(); return; }
+
+            const fieldMap = {
+                '序列':'seq','运单号':'trackingNo','日期':'date','车牌':'plate','驾驶员':'driver',
+                '始发地':'origin','出场时间':'departureTime','经停点1':'stop1','到店时间':'stop1Time',
+                '经停点2':'stop2','到店时间.1':'stop2Time','经停点3':'stop3','到店时间.2':'stop3Time',
+                '经停点4':'stop4','到店时间.3':'stop4Time','经停点5':'stop5','到店时间.4':'stop5Time',
+                '经停点6':'stop6','到店时间.5':'stop6Time','6厂配送':'isFactoryDelivery',
+                '去程km':'outboundKm','回城km':'returnKm','总里程':'totalKm',
+                '收入':'income','司机运费':'driverFee','电补':'electricSubsidy','高速费':'tollFee',
+                '车租':'rent','维修费':'repairFee','人员成本':'laborCost','利润':'profit',
+                '到店时效':'arrivalTime','回单':'receipt','温控跟踪':'tempTracking'
+            };
+
+            const imported = importBuffer.map(row => {
+                const order = { id: Date.now().toString()+Math.random().toString(36).substr(2,5), project };
+                for (let key in row) {
+                    const mappedKey = fieldMap[key];
+                    if (mappedKey) order[mappedKey] = row[key];
+                }
+                if (order.date && typeof order.date === 'number') {
+                    const d = new Date((order.date-25569)*86400*1000);
+                    order.date = d.toISOString().slice(0,10);
+                }
+                ['departureTime','stop1Time','stop2Time','stop3Time','stop4Time','stop5Time','stop6Time'].forEach(f => {
+                    if (order[f] && typeof order[f] === 'number') {
+                        const t = order[f], h = Math.floor(t*24), m = Math.round((t*24-h)*60);
+                        order[f] = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+                    }
+                });
+                return order;
+            }).filter(o => o.trackingNo);
+
+            orders = orders.concat(imported);
+            await saveToCloud();
+            closeImportModal();
+            showToast(`成功导入 ${imported.length} 条运单到【${project}】项目`);
+            renderOrders();
+            updateDashboard();
+        }
+
         function exportData() {
-            if (orders.length === 0) { showToast('暂无数据可导出', 'warn'); return; }
-            const exportRows = orders.map(o => ({
-                '序列':o.seq,'运单号':o.trackingNo,'日期':o.date,'车牌':o.plate,'驾驶员':o.driver,
+            if (orders.length === 0) { alert('暂无数据'); return; }
+            const projectFilter = document.getElementById('projectFilter').value;
+            let data = orders;
+            if (projectFilter) data = data.filter(o => o.project === projectFilter);
+            
+            const exportData = data.map(o => ({
+                '项目':o.project,'序列':o.seq,'运单号':o.trackingNo,'日期':o.date,'车牌':o.plate,'驾驶员':o.driver,
                 '始发地':o.origin,'出场时间':o.departureTime,'经停点1':o.stop1,'到店时间':o.stop1Time,
                 '经停点2':o.stop2,'到店时间.1':o.stop2Time,'经停点3':o.stop3,'到店时间.2':o.stop3Time,
                 '经停点4':o.stop4,'到店时间.3':o.stop4Time,'经停点5':o.stop5,'到店时间.4':o.stop5Time,
                 '经停点6':o.stop6,'到店时间.5':o.stop6Time,'6厂配送':o.isFactoryDelivery,
                 '去程km':o.outboundKm,'回城km':o.returnKm,'总里程':o.totalKm,
-                '收入':parseFloat(o.income||0),'司机运费':parseFloat(o.driverFee||0),
-                '电补':parseFloat(o.electricSubsidy||0),'高速费':parseFloat(o.tollFee||0),
-                '车租':parseFloat(o.rent||0),'维修费':parseFloat(o.repairFee||0),
+                '收入':parseFloat(o.income||0),'司机运费':parseFloat(o.driverFee||0),'电补':parseFloat(o.electricSubsidy||0),
+                '高速费':parseFloat(o.tollFee||0),'车租':parseFloat(o.rent||0),'维修费':parseFloat(o.repairFee||0),
                 '人员成本':parseFloat(o.laborCost||0),'利润':parseFloat(o.profit||0),
                 '到店时效':o.arrivalTime,'回单':o.receipt,'温控跟踪':o.tempTracking
             }));
-            const ws = XLSX.utils.json_to_sheet(exportRows);
+            const ws = XLSX.utils.json_to_sheet(exportData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, '汇总');
             XLSX.writeFile(wb, `恒冰运营表_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
+        // ====== 项目管理 ======
+        function renderProjects() {
+            document.getElementById('projectTable').innerHTML = projects.map(p => {
+                const count = orders.filter(o => o.project === p).length;
+                return `<tr><td>${p}</td><td>${count}</td><td><button onclick="deleteProject('${p}')" class="text-red-600 text-sm"><i class="fas fa-trash"></i></button></td></tr>`;
+            }).join('');
+        }
+
+        function addProject() {
+            const name = document.getElementById('newProjectName').value.trim();
+            if (!name) { alert('请输入项目名称'); return; }
+            if (projects.includes(name)) { alert('项目已存在'); return; }
+            projects.push(name);
+            localStorage.setItem('hengbing_projects', JSON.stringify(projects));
+            document.getElementById('newProjectName').value = '';
+            updateProjectSelects();
+            renderProjects();
+            showToast('项目添加成功');
+        }
+
+        function deleteProject(name) {
+            if (!confirm(`删除项目【${name}】？该项目的运单数据将保留但无法筛选。`)) return;
+            projects = projects.filter(p => p !== name);
+            localStorage.setItem('hengbing_projects', JSON.stringify(projects));
+            updateProjectSelects();
+            renderProjects();
+        }
+
+        // ====== 数据管理 ======
+        function backupData() {
+            const data = { orders, projects, backupTime: new Date().toISOString() };
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `恒冰数据备份_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function restoreData(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.orders) orders = data.orders;
+                    if (data.projects) {
+                        projects = data.projects;
+                        localStorage.setItem('hengbing_projects', JSON.stringify(projects));
+                    }
+                    await saveToCloud();
+                    updateProjectSelects();
+                    renderOrders();
+                    updateDashboard();
+                    showToast('数据恢复成功');
+                } catch(err) {
+                    alert('恢复失败：' + err.message);
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        }
+
+        async function clearAllData() {
+            if (!confirm('确定清空所有数据？此操作不可恢复！')) return;
+            if (!confirm('再次确认：真的要清空所有数据吗？')) return;
+            orders = [];
+            await saveToCloud();
+            renderOrders();
+            updateDashboard();
+            showToast('数据已清空');
+        }
+
         window.onclick = function(e) {
             if (e.target === document.getElementById('orderModal')) closeModal();
+            if (e.target === document.getElementById('importProjectModal')) closeImportModal();
         }
     </script>
 </body>
