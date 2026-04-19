@@ -183,8 +183,16 @@
                         </table>
                     </div>
                     <div class="card p-5">
-                        <h3 class="font-semibold mb-4 flex items-center"><i class="fas fa-database mr-2 text-green-600"></i>数据管理</h3>
+                        <h3 class="font-semibold mb-4 flex items-center"><i class="fas fa-cog mr-2 text-purple-600"></i>系统设置</h3>
                         <div class="space-y-3">
+                            <div class="p-3 bg-gray-50 rounded-lg">
+                                <p class="text-sm font-medium mb-2">系统名称</p>
+                                <div class="flex gap-2">
+                                    <input type="text" id="systemNameInput" placeholder="输入系统名称" class="flex-1 px-3 py-2 border rounded-lg text-sm">
+                                    <button onclick="saveSystemName()" class="btn-primary text-sm"><i class="fas fa-save mr-1"></i>保存</button>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">当前: <span id="currentSystemName">恒冰物流系统</span></p>
+                            </div>
                             <div class="p-3 bg-gray-50 rounded-lg">
                                 <p class="text-sm font-medium mb-2">数据备份</p>
                                 <button onclick="backupData()" class="btn-secondary text-sm"><i class="fas fa-download mr-1"></i>下载备份</button>
@@ -449,6 +457,7 @@
 
         // ====== 初始化 ======
         document.addEventListener('DOMContentLoaded', () => {
+            loadSystemName();
             loadFromCloud();
             setInterval(loadFromCloud, 60000);
         });
@@ -464,7 +473,7 @@
                 tab==='dashboard'?'运营概览':tab==='orders'?'运单汇总':'管理员';
             if (tab==='dashboard') updateDashboard();
             if (tab==='orders') renderOrders();
-            if (tab==='admin') renderProjects();
+            if (tab==='admin') { renderProjects(); loadSystemName(); }
         }
 
         function updateProjectSelects() {
@@ -897,6 +906,23 @@
             localStorage.setItem('hengbing_projects', JSON.stringify(projects));
             updateProjectSelects();
             renderProjects();
+        }
+
+        // ====== 系统名称设置 ======
+        function loadSystemName() {
+            const name = localStorage.getItem('system_name') || '恒冰物流系统';
+            document.getElementById('currentSystemName').textContent = name;
+            document.getElementById('systemNameInput').value = name;
+            document.querySelector('aside h1').innerHTML = `<i class="fas fa-truck mr-2"></i>${name}`;
+            document.title = name + '运营管理系统';
+        }
+
+        function saveSystemName() {
+            const name = document.getElementById('systemNameInput').value.trim();
+            if (!name) { alert('请输入系统名称'); return; }
+            localStorage.setItem('system_name', name);
+            loadSystemName();
+            showToast('系统名称已保存');
         }
 
         // ====== 数据管理 ======
