@@ -131,6 +131,44 @@
                     <div class="card p-4"><h3 class="font-semibold mb-3 text-sm">各项目利润对比</h3><canvas id="projectProfitChart" height="200"></canvas></div>
                     <div class="card p-4"><h3 class="font-semibold mb-3 text-sm">各项目运单数对比</h3><canvas id="projectOrderChart" height="200"></canvas></div>
                 </div>
+
+                <!-- 月度项目经营分析 -->
+                <div class="mt-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="font-bold text-sm text-gray-700"><i class="fas fa-chart-bar mr-2 text-indigo-600"></i>月度项目经营分析 <span class="text-xs font-normal text-gray-400 ml-2" id="biz-analysis-title"></span></h3>
+                        <div class="flex gap-2">
+                            <button onclick="toggleBizChart('bar')" id="biz-btn-bar" class="text-xs px-3 py-1 rounded border border-indigo-400 text-indigo-600 bg-indigo-50 font-medium">柱状图</button>
+                            <button onclick="toggleBizChart('table')" id="biz-btn-table" class="text-xs px-3 py-1 rounded border border-gray-300 text-gray-500 bg-white">数据表</button>
+                        </div>
+                    </div>
+                    <!-- 图表视图 -->
+                    <div id="biz-chart-view" class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="card p-4"><h4 class="text-xs text-gray-500 mb-2">各项目收入 vs 支出（元）</h4><canvas id="bizIncomeChart" height="220"></canvas></div>
+                        <div class="card p-4"><h4 class="text-xs text-gray-500 mb-2">各项目毛利（元）</h4><canvas id="bizProfitChart" height="220"></canvas></div>
+                        <div class="card p-4"><h4 class="text-xs text-gray-500 mb-2">各项目发车次（上月 vs 当月）</h4><canvas id="bizTripsChart" height="220"></canvas></div>
+                        <div class="card p-4"><h4 class="text-xs text-gray-500 mb-2">成本结构占比（各项目）</h4><canvas id="bizCostChart" height="220"></canvas></div>
+                    </div>
+                    <!-- 数据表视图 -->
+                    <div id="biz-table-view" class="card hidden">
+                        <div class="overflow-x-auto">
+                            <table class="text-xs" id="bizDataTable">
+                                <thead>
+                                    <tr>
+                                        <th>类型</th><th>项目名称</th>
+                                        <th class="text-right">上月发车</th><th class="text-right">当月发车</th><th class="text-right">车次变化</th>
+                                        <th class="text-right">上月收入</th><th class="text-right">当月收入</th><th class="text-right">收入变化</th>
+                                        <th class="text-right">上月支出</th><th class="text-right">当月支出</th><th class="text-right">支出变化</th>
+                                        <th class="text-right">毛利</th><th class="text-right">毛利率</th>
+                                        <th class="text-right">司机运费</th><th class="text-right">电补</th><th class="text-right">高速费</th>
+                                        <th class="text-right">在用车辆</th><th class="text-right">实际运营</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bizTableBody"></tbody>
+                                <tfoot id="bizTableFoot"></tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- 运单汇总 -->
@@ -353,6 +391,21 @@
         let currentPage = 1;
         const pageSize = 15;
         let incomeChart = null, costChart = null, projectProfitChart = null, projectOrderChart = null;
+        let bizIncomeChart = null, bizProfitChart = null, bizTripsChart = null, bizCostChart = null;
+
+        // ====== 月度项目经营分析数据 ======
+        const BIZ_DATA = {
+          title: '26年4月1日-15日项目运营数据',
+          projects: [
+            { category:'常温项目', name:'平顶山好想来', last_trips:133, cur_trips:73, trips_change_rate:-0.4511, last_income:110041.51, cur_income:61242.6, income_change_rate:-0.4435, last_cost:103354.8, cur_cost:73349.51, cost_change_rate:-0.2903, driver_fee:16340, car_group_cost:40161.29, electricity_subsidy:11057.65, highway_fee:0, loading_fee:4120.13, platform_fee:1670.44, repair_fee:0, staff_cost:0, gross_profit:-12106.91, gross_margin:-0.1977, car_count:29, active_car_count:14 },
+            { category:'常温项目', name:'亳州好想来', last_trips:144, cur_trips:56, trips_change_rate:-0.6111, last_income:78071.37, cur_income:31378.92, income_change_rate:-0.5981, last_cost:80556.63, cur_cost:49972.09, cost_change_rate:-0.3797, driver_fee:9020, car_group_cost:32380.33, electricity_subsidy:4520.22, highway_fee:0, loading_fee:3166.1, platform_fee:885.43, repair_fee:0, staff_cost:0, gross_profit:-18593.17, gross_margin:-0.5925, car_count:24, active_car_count:11 },
+            { category:'常温项目', name:'驻马店来优品', last_trips:240, cur_trips:227, trips_change_rate:-0.0542, last_income:117728.9, cur_income:119421.24, income_change_rate:0.0144, last_cost:102254.41, cur_cost:103339.95, cost_change_rate:0.0106, driver_fee:37490, car_group_cost:38022.89, electricity_subsidy:24539.5, highway_fee:0, loading_fee:0, platform_fee:3287.56, repair_fee:0, staff_cost:0, gross_profit:16081.29, gross_margin:0.1347, car_count:22, active_car_count:20 },
+            { category:'常温项目', name:'泰州好想来', last_trips:78, cur_trips:30, trips_change_rate:-0.6154, last_income:37405.96, cur_income:17577.22, income_change_rate:-0.5301, last_cost:64450.98, cur_cost:69512.71, cost_change_rate:0.0785, driver_fee:10085, car_group_cost:51250.0, electricity_subsidy:0, highway_fee:0, loading_fee:0, platform_fee:677.71, repair_fee:0, staff_cost:7500, gross_profit:-51935.49, gross_margin:-2.9547, car_count:25, active_car_count:5 },
+            { category:'冷链项目', name:'南平恒冰项目', last_trips:100, cur_trips:129, trips_change_rate:0.29, last_income:203737.7, cur_income:269017.2, income_change_rate:0.3204, last_cost:214056.5, cur_cost:261516.64, cost_change_rate:0.2217, driver_fee:62600, car_group_cost:76450, electricity_subsidy:62600, highway_fee:45098, loading_fee:0, platform_fee:8413.44, repair_fee:0, staff_cost:6355.2, gross_profit:7500.56, gross_margin:0.0279, car_count:22, active_car_count:22 },
+            { category:'冷链项目', name:'正阳牧原', last_trips:48, cur_trips:86, trips_change_rate:0.7917, last_income:38232.94, cur_income:67628.08, income_change_rate:0.7688, last_cost:78130.17, cur_cost:64491.24, cost_change_rate:-0.1746, driver_fee:31700, car_group_cost:24325, electricity_subsidy:0, highway_fee:2336, loading_fee:0, platform_fee:2130.24, repair_fee:0, staff_cost:4000, gross_profit:3136.84, gross_margin:0.0464, car_count:7, active_car_count:6 }
+          ],
+          total: { last_trips:743, cur_trips:601, trips_change_rate:-0.1911, last_income:585218.38, cur_income:566265.26, income_change_rate:-0.0324, last_cost:642803.48, cur_cost:622182.14, cost_change_rate:-0.0321, driver_fee:167235, car_group_cost:262589.51, electricity_subsidy:102717.37, gross_profit:-55916.88, gross_margin:-0.0987 }
+        };
         let isSaving = false;
         let selectedIds = new Set();
         let importBuffer = null;
@@ -480,6 +533,7 @@
             loadSystemName();
             loadFromCloud();
             setInterval(loadFromCloud, 60000);
+            renderBizAnalysis();
         });
 
         function showTab(tab) {
@@ -491,7 +545,7 @@
             document.getElementById('nav-'+tab).classList.add('bg-blue-600');
             document.getElementById('page-title').textContent = 
                 tab==='dashboard'?'运营概览':tab==='orders'?'运单汇总':'管理员';
-            if (tab==='dashboard') updateDashboard();
+            if (tab==='dashboard') { updateDashboard(); renderBizAnalysis(); }
             if (tab==='orders') renderOrders();
             if (tab==='admin') { renderProjects(); loadSystemName(); }
         }
@@ -516,6 +570,149 @@
             const costs = ['driverFee','electricSubsidy','tollFee','rent','repairFee','laborCost']
                 .reduce((s,id)=>s+(parseFloat(document.getElementById(id).value)||0),0);
             document.getElementById('profit').value = (income-costs).toFixed(2);
+        }
+
+        // ====== 月度项目经营分析 ======
+        function renderBizAnalysis() {
+            const d = BIZ_DATA;
+            document.getElementById('biz-analysis-title').textContent = d.title;
+            renderBizTable(d);
+            renderBizCharts(d);
+        }
+
+        function toggleBizChart(mode) {
+            const isTable = mode === 'table';
+            document.getElementById('biz-chart-view').classList.toggle('hidden', isTable);
+            document.getElementById('biz-table-view').classList.toggle('hidden', !isTable);
+            document.getElementById('biz-btn-bar').className = !isTable
+                ? 'text-xs px-3 py-1 rounded border border-indigo-400 text-indigo-600 bg-indigo-50 font-medium'
+                : 'text-xs px-3 py-1 rounded border border-gray-300 text-gray-500 bg-white';
+            document.getElementById('biz-btn-table').className = isTable
+                ? 'text-xs px-3 py-1 rounded border border-indigo-400 text-indigo-600 bg-indigo-50 font-medium'
+                : 'text-xs px-3 py-1 rounded border border-gray-300 text-gray-500 bg-white';
+        }
+
+        function fmt(n, digits=0) {
+            if (n == null || isNaN(n)) return '-';
+            return n.toLocaleString('zh-CN', {minimumFractionDigits:digits, maximumFractionDigits:digits});
+        }
+        function fmtPct(n) {
+            if (n == null || isNaN(n)) return '-';
+            const s = (n * 100).toFixed(1) + '%';
+            return n >= 0 ? '+' + s : s;
+        }
+        function changeColor(n) {
+            if (n == null || isNaN(n)) return '';
+            return n >= 0 ? 'color:#059669' : 'color:#dc2626';
+        }
+
+        function renderBizTable(d) {
+            const tbody = document.getElementById('bizTableBody');
+            tbody.innerHTML = d.projects.map(p => `
+                <tr>
+                    <td><span class="text-xs px-1.5 py-0.5 rounded ${p.category==='常温项目'?'bg-blue-100 text-blue-700':'bg-green-100 text-green-700'}">${p.category}</span></td>
+                    <td class="font-medium">${p.name}</td>
+                    <td class="text-right">${fmt(p.last_trips)}</td>
+                    <td class="text-right font-medium">${fmt(p.cur_trips)}</td>
+                    <td class="text-right text-xs" style="${changeColor(p.trips_change_rate)}">${fmtPct(p.trips_change_rate)}</td>
+                    <td class="text-right">${fmt(p.last_income)}</td>
+                    <td class="text-right font-medium">${fmt(p.cur_income)}</td>
+                    <td class="text-right text-xs" style="${changeColor(p.income_change_rate)}">${fmtPct(p.income_change_rate)}</td>
+                    <td class="text-right">${fmt(p.last_cost)}</td>
+                    <td class="text-right font-medium">${fmt(p.cur_cost)}</td>
+                    <td class="text-right text-xs" style="${changeColor(-p.cost_change_rate)}">${fmtPct(p.cost_change_rate)}</td>
+                    <td class="text-right font-medium" style="${changeColor(p.gross_profit)}">${fmt(p.gross_profit)}</td>
+                    <td class="text-right text-xs" style="${changeColor(p.gross_margin)}">${fmtPct(p.gross_margin)}</td>
+                    <td class="text-right">${fmt(p.driver_fee)}</td>
+                    <td class="text-right">${fmt(p.electricity_subsidy||0)}</td>
+                    <td class="text-right">${fmt(p.highway_fee||0)}</td>
+                    <td class="text-right">${fmt(p.car_count)}</td>
+                    <td class="text-right">${fmt(p.active_car_count)}</td>
+                </tr>`).join('');
+            const t = d.total;
+            document.getElementById('bizTableFoot').innerHTML = `
+                <tr class="font-bold bg-gray-50 border-t-2 border-gray-300">
+                    <td colspan="2">合计</td>
+                    <td class="text-right">${fmt(t.last_trips)}</td>
+                    <td class="text-right">${fmt(t.cur_trips)}</td>
+                    <td class="text-right text-xs" style="${changeColor(t.trips_change_rate)}">${fmtPct(t.trips_change_rate)}</td>
+                    <td class="text-right">${fmt(t.last_income)}</td>
+                    <td class="text-right">${fmt(t.cur_income)}</td>
+                    <td class="text-right text-xs" style="${changeColor(t.income_change_rate)}">${fmtPct(t.income_change_rate)}</td>
+                    <td class="text-right">${fmt(t.last_cost)}</td>
+                    <td class="text-right">${fmt(t.cur_cost)}</td>
+                    <td class="text-right text-xs" style="${changeColor(-t.cost_change_rate)}">${fmtPct(t.cost_change_rate)}</td>
+                    <td class="text-right" style="${changeColor(t.gross_profit)}">${fmt(t.gross_profit)}</td>
+                    <td class="text-right text-xs" style="${changeColor(t.gross_margin)}">${fmtPct(t.gross_margin)}</td>
+                    <td class="text-right">${fmt(t.driver_fee)}</td>
+                    <td class="text-right">${fmt(t.electricity_subsidy)}</td>
+                    <td colspan="3"></td>
+                </tr>`;
+        }
+
+        function renderBizCharts(d) {
+            const names = d.projects.map(p => p.name);
+            const colors = d.projects.map(p => p.category === '常温项目' ? '#6366f1' : '#10b981');
+            const colorsLight = d.projects.map(p => p.category === '常温项目' ? '#a5b4fc' : '#6ee7b7');
+            const profitColors = d.projects.map(p => p.gross_profit >= 0 ? '#10b981' : '#ef4444');
+
+            // 收入 vs 支出
+            if (bizIncomeChart) bizIncomeChart.destroy();
+            bizIncomeChart = new Chart(document.getElementById('bizIncomeChart'), {
+                type: 'bar',
+                data: {
+                    labels: names,
+                    datasets: [
+                        { label:'当月收入', data: d.projects.map(p=>p.cur_income), backgroundColor: colors },
+                        { label:'当月支出', data: d.projects.map(p=>p.cur_cost), backgroundColor: colorsLight }
+                    ]
+                },
+                options: { responsive:true, plugins:{legend:{position:'top',labels:{font:{size:10}}}}, scales:{y:{ticks:{font:{size:10},callback:v=>'¥'+v.toLocaleString()},grid:{color:'#f0f0f0'}},x:{ticks:{font:{size:10}}}}}
+            });
+
+            // 毛利
+            if (bizProfitChart) bizProfitChart.destroy();
+            bizProfitChart = new Chart(document.getElementById('bizProfitChart'), {
+                type: 'bar',
+                data: {
+                    labels: names,
+                    datasets: [{ label:'毛利', data: d.projects.map(p=>p.gross_profit), backgroundColor: profitColors }]
+                },
+                options: { responsive:true, plugins:{legend:{display:false}}, scales:{y:{ticks:{font:{size:10},callback:v=>'¥'+v.toLocaleString()},grid:{color:'#f0f0f0'}},x:{ticks:{font:{size:10}}}}}
+            });
+
+            // 发车次对比
+            if (bizTripsChart) bizTripsChart.destroy();
+            bizTripsChart = new Chart(document.getElementById('bizTripsChart'), {
+                type: 'bar',
+                data: {
+                    labels: names,
+                    datasets: [
+                        { label:'上月', data: d.projects.map(p=>p.last_trips), backgroundColor: '#cbd5e1' },
+                        { label:'当月', data: d.projects.map(p=>p.cur_trips), backgroundColor: colors }
+                    ]
+                },
+                options: { responsive:true, plugins:{legend:{position:'top',labels:{font:{size:10}}}}, scales:{y:{ticks:{font:{size:10}}},x:{ticks:{font:{size:10}}}}}
+            });
+
+            // 成本结构（堆叠）
+            if (bizCostChart) bizCostChart.destroy();
+            bizCostChart = new Chart(document.getElementById('bizCostChart'), {
+                type: 'bar',
+                data: {
+                    labels: names,
+                    datasets: [
+                        { label:'司机运费', data: d.projects.map(p=>p.driver_fee||0), backgroundColor:'#6366f1', stack:'cost' },
+                        { label:'车组成本', data: d.projects.map(p=>p.car_group_cost||0), backgroundColor:'#8b5cf6', stack:'cost' },
+                        { label:'电补', data: d.projects.map(p=>p.electricity_subsidy||0), backgroundColor:'#06b6d4', stack:'cost' },
+                        { label:'高速费', data: d.projects.map(p=>p.highway_fee||0), backgroundColor:'#f59e0b', stack:'cost' },
+                        { label:'装卸费', data: d.projects.map(p=>p.loading_fee||0), backgroundColor:'#f97316', stack:'cost' },
+                        { label:'平台服务费', data: d.projects.map(p=>p.platform_fee||0), backgroundColor:'#ef4444', stack:'cost' },
+                        { label:'人员成本', data: d.projects.map(p=>p.staff_cost||0), backgroundColor:'#10b981', stack:'cost' }
+                    ]
+                },
+                options: { responsive:true, plugins:{legend:{position:'top',labels:{font:{size:9}}}}, scales:{x:{stacked:true,ticks:{font:{size:10}}},y:{stacked:true,ticks:{font:{size:10},callback:v=>'¥'+v.toLocaleString()}}}}
+            });
         }
 
         // ====== 仪表盘 ======
