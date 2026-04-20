@@ -477,18 +477,15 @@
         let incomeChart = null, costChart = null, projectProfitChart = null, projectOrderChart = null;
         let bizIncomeChart = null, bizProfitChart = null, bizTripsChart = null, bizCostChart = null;
 
-        // ====== 月度项目经营分析数据 ======
-        const BIZ_DATA = {
-          title: '26年4月1日-15日项目运营数据',
-          projects: [
-            { category:'常温项目', name:'平顶山好想来', last_trips:133, cur_trips:73, trips_change_rate:-0.4511, last_income:110041.51, cur_income:61242.6, income_change_rate:-0.4435, last_cost:103354.8, cur_cost:73349.51, cost_change_rate:-0.2903, driver_fee:16340, car_group_cost:40161.29, electricity_subsidy:11057.65, highway_fee:0, loading_fee:4120.13, platform_fee:1670.44, repair_fee:0, staff_cost:0, gross_profit:-12106.91, gross_margin:-0.1977, car_count:29, active_car_count:14 },
-            { category:'常温项目', name:'亳州好想来', last_trips:144, cur_trips:56, trips_change_rate:-0.6111, last_income:78071.37, cur_income:31378.92, income_change_rate:-0.5981, last_cost:80556.63, cur_cost:49972.09, cost_change_rate:-0.3797, driver_fee:9020, car_group_cost:32380.33, electricity_subsidy:4520.22, highway_fee:0, loading_fee:3166.1, platform_fee:885.43, repair_fee:0, staff_cost:0, gross_profit:-18593.17, gross_margin:-0.5925, car_count:24, active_car_count:11 },
-            { category:'常温项目', name:'驻马店来优品', last_trips:240, cur_trips:227, trips_change_rate:-0.0542, last_income:117728.9, cur_income:119421.24, income_change_rate:0.0144, last_cost:102254.41, cur_cost:103339.95, cost_change_rate:0.0106, driver_fee:37490, car_group_cost:38022.89, electricity_subsidy:24539.5, highway_fee:0, loading_fee:0, platform_fee:3287.56, repair_fee:0, staff_cost:0, gross_profit:16081.29, gross_margin:0.1347, car_count:22, active_car_count:20 },
-            { category:'常温项目', name:'泰州好想来', last_trips:78, cur_trips:30, trips_change_rate:-0.6154, last_income:37405.96, cur_income:17577.22, income_change_rate:-0.5301, last_cost:64450.98, cur_cost:69512.71, cost_change_rate:0.0785, driver_fee:10085, car_group_cost:51250.0, electricity_subsidy:0, highway_fee:0, loading_fee:0, platform_fee:677.71, repair_fee:0, staff_cost:7500, gross_profit:-51935.49, gross_margin:-2.9547, car_count:25, active_car_count:5 },
-            { category:'冷链项目', name:'南平恒冰项目', last_trips:100, cur_trips:129, trips_change_rate:0.29, last_income:203737.7, cur_income:269017.2, income_change_rate:0.3204, last_cost:214056.5, cur_cost:261516.64, cost_change_rate:0.2217, driver_fee:62600, car_group_cost:76450, electricity_subsidy:62600, highway_fee:45098, loading_fee:0, platform_fee:8413.44, repair_fee:0, staff_cost:6355.2, gross_profit:7500.56, gross_margin:0.0279, car_count:22, active_car_count:22 },
-            { category:'冷链项目', name:'正阳牧原', last_trips:48, cur_trips:86, trips_change_rate:0.7917, last_income:38232.94, cur_income:67628.08, income_change_rate:0.7688, last_cost:78130.17, cur_cost:64491.24, cost_change_rate:-0.1746, driver_fee:31700, car_group_cost:24325, electricity_subsidy:0, highway_fee:2336, loading_fee:0, platform_fee:2130.24, repair_fee:0, staff_cost:4000, gross_profit:3136.84, gross_margin:0.0464, car_count:7, active_car_count:6 }
-          ],
-          total: { last_trips:743, cur_trips:601, trips_change_rate:-0.1911, last_income:585218.38, cur_income:566265.26, income_change_rate:-0.0324, last_cost:642803.48, cur_cost:622182.14, cost_change_rate:-0.0321, driver_fee:167235, car_group_cost:262589.51, electricity_subsidy:102717.37, gross_profit:-55916.88, gross_margin:-0.0987 }
+        // ====== 月度项目经营分析数据（从运单汇总实时计算）======
+        // 项目分类配置
+        const PROJECT_CATEGORIES = {
+            '平顶山好想来': '常温项目',
+            '亳州好想来': '常温项目',
+            '驻马店来优品': '常温项目',
+            '泰州好想来': '常温项目',
+            '南平恒冰项目': '冷链项目',
+            '正阳牧原': '冷链项目'
         };
         let isSaving = false;
         let selectedIds = new Set();
@@ -659,10 +656,131 @@
 
         // ====== 月度项目经营分析 ======
         function renderBizAnalysis() {
-            const d = BIZ_DATA;
+            const d = calculateBizData();
             document.getElementById('biz-analysis-title').textContent = d.title;
             renderBizTable(d);
             renderBizCharts(d);
+        }
+
+        // 从运单汇总实时计算月度经营数据
+        function calculateBizData() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            const yearShort = year.toString().slice(2);
+            
+            // 生成标题：如 "26年4月1日-20日项目运营数据"
+            const title = `${yearShort}年${month}月1日-${day}日项目运营数据`;
+            
+            // 计算当月日期范围
+            const curMonthStart = `${year}-${String(month).padStart(2,'0')}-01`;
+            const curMonthEnd = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+            
+            // 计算上月日期范围
+            const lastMonth = month === 1 ? 12 : month - 1;
+            const lastMonthYear = month === 1 ? year - 1 : year;
+            const lastMonthDays = new Date(lastMonthYear, lastMonth, 0).getDate();
+            const lastMonthStart = `${lastMonthYear}-${String(lastMonth).padStart(2,'0')}-01`;
+            const lastMonthEnd = `${lastMonthYear}-${String(lastMonth).padStart(2,'0')}-${String(lastMonthDays).padStart(2,'0')}`;
+            
+            // 获取所有项目列表（从运单中提取）
+            const allProjects = [...new Set(orders.map(o => o.project).filter(Boolean))];
+            
+            // 计算每个项目的数据
+            const projects = allProjects.map(projectName => {
+                const category = PROJECT_CATEGORIES[projectName] || '其他项目';
+                
+                // 当月运单
+                const curOrders = orders.filter(o => 
+                    o.project === projectName && 
+                    o.date >= curMonthStart && 
+                    o.date <= curMonthEnd
+                );
+                
+                // 上月运单
+                const lastOrders = orders.filter(o => 
+                    o.project === projectName && 
+                    o.date >= lastMonthStart && 
+                    o.date <= lastMonthEnd
+                );
+                
+                // 计算车次（运单数）
+                const cur_trips = curOrders.length;
+                const last_trips = lastOrders.length;
+                const trips_change_rate = last_trips > 0 ? (cur_trips - last_trips) / last_trips : (cur_trips > 0 ? 1 : 0);
+                
+                // 计算收入
+                const cur_income = curOrders.reduce((s, o) => s + parseFloat(o.income || 0), 0);
+                const last_income = lastOrders.reduce((s, o) => s + parseFloat(o.income || 0), 0);
+                const income_change_rate = last_income > 0 ? (cur_income - last_income) / last_income : (cur_income > 0 ? 1 : 0);
+                
+                // 计算成本
+                const calcCost = (orderList) => orderList.reduce((s, o) => {
+                    return s + parseFloat(o.driverFee || 0) + parseFloat(o.electricSubsidy || 0) + 
+                           parseFloat(o.tollFee || 0) + parseFloat(o.rent || 0) + 
+                           parseFloat(o.repairFee || 0) + parseFloat(o.laborCost || 0);
+                }, 0);
+                
+                const cur_cost = calcCost(curOrders);
+                const last_cost = calcCost(lastOrders);
+                const cost_change_rate = last_cost > 0 ? (cur_cost - last_cost) / last_cost : (cur_cost > 0 ? 1 : 0);
+                
+                // 毛利
+                const gross_profit = cur_income - cur_cost;
+                const gross_margin = cur_income > 0 ? gross_profit / cur_income : 0;
+                
+                // 成本细项（当月）
+                const driver_fee = curOrders.reduce((s, o) => s + parseFloat(o.driverFee || 0), 0);
+                const car_group_cost = curOrders.reduce((s, o) => s + parseFloat(o.rent || 0), 0);
+                const electricity_subsidy = curOrders.reduce((s, o) => s + parseFloat(o.electricSubsidy || 0), 0);
+                const highway_fee = curOrders.reduce((s, o) => s + parseFloat(o.tollFee || 0), 0);
+                const loading_fee = 0; // 运单中暂无此字段
+                const platform_fee = 0; // 运单中暂无此字段
+                const repair_fee = curOrders.reduce((s, o) => s + parseFloat(o.repairFee || 0), 0);
+                const staff_cost = curOrders.reduce((s, o) => s + parseFloat(o.laborCost || 0), 0);
+                
+                // 车辆数（按车牌去重）
+                const car_count = [...new Set(curOrders.map(o => o.plate).filter(Boolean))].length;
+                const active_car_count = car_count;
+                
+                return {
+                    category, name: projectName,
+                    last_trips, cur_trips, trips_change_rate,
+                    last_income, cur_income, income_change_rate,
+                    last_cost, cur_cost, cost_change_rate,
+                    driver_fee, car_group_cost, electricity_subsidy, highway_fee,
+                    loading_fee, platform_fee, repair_fee, staff_cost,
+                    gross_profit, gross_margin, car_count, active_car_count
+                };
+            }).filter(p => p.cur_trips > 0 || p.last_trips > 0); // 只显示有数据的项目
+            
+            // 按项目类型排序：常温在前，冷链在后
+            projects.sort((a, b) => {
+                if (a.category === b.category) return a.name.localeCompare(b.name);
+                return a.category === '常温项目' ? -1 : 1;
+            });
+            
+            // 计算合计
+            const total = {
+                last_trips: projects.reduce((s, p) => s + p.last_trips, 0),
+                cur_trips: projects.reduce((s, p) => s + p.cur_trips, 0),
+                last_income: projects.reduce((s, p) => s + p.last_income, 0),
+                cur_income: projects.reduce((s, p) => s + p.cur_income, 0),
+                last_cost: projects.reduce((s, p) => s + p.last_cost, 0),
+                cur_cost: projects.reduce((s, p) => s + p.cur_cost, 0),
+                driver_fee: projects.reduce((s, p) => s + p.driver_fee, 0),
+                car_group_cost: projects.reduce((s, p) => s + p.car_group_cost, 0),
+                electricity_subsidy: projects.reduce((s, p) => s + p.electricity_subsidy, 0),
+                gross_profit: projects.reduce((s, p) => s + p.gross_profit, 0)
+            };
+            
+            total.trips_change_rate = total.last_trips > 0 ? (total.cur_trips - total.last_trips) / total.last_trips : 0;
+            total.income_change_rate = total.last_income > 0 ? (total.cur_income - total.last_income) / total.last_income : 0;
+            total.cost_change_rate = total.last_cost > 0 ? (total.cur_cost - total.last_cost) / total.last_cost : 0;
+            total.gross_margin = total.cur_income > 0 ? total.gross_profit / total.cur_income : 0;
+            
+            return { title, projects, total };
         }
 
         function toggleBizChart(mode) {
