@@ -43,6 +43,20 @@
         .sync-ing { background: #fef3c7; color: #92400e; }
         .sync-err { background: #fee2e2; color: #991b1b; }
         .row-selected { background: #dbeafe !important; }
+        /* 拖拽模块样式 */
+        .drag-module { cursor: default; transition: opacity 0.2s, box-shadow 0.2s; }
+        .drag-module.dragging { opacity: 0.4; box-shadow: 0 8px 24px rgba(0,0,0,0.18); }
+        .drag-module.drag-over { outline: 2px dashed #3b82f6; outline-offset: 2px; }
+        .drag-handle { cursor: grab; color: #9ca3af; padding: 4px 6px; border-radius: 4px; }
+        .drag-handle:hover { background: #f3f4f6; color: #6b7280; }
+        .drag-handle:active { cursor: grabbing; }
+        /* 自定义仪表盘 */
+        .widget-card { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 16px; position: relative; }
+        .widget-remove { position: absolute; top: 8px; right: 8px; background: none; border: none; color: #d1d5db; cursor: pointer; font-size: 14px; }
+        .widget-remove:hover { color: #ef4444; }
+        .metric-checkbox-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; cursor: pointer; user-select: none; }
+        .metric-checkbox-item:hover { background: #f3f4f6; }
+        .metric-checkbox-item input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -84,89 +98,159 @@
 
             <!-- 运营概览 -->
             <div id="dashboard-section" class="p-5">
-                <div class="grid grid-cols-5 gap-4 mb-5">
-                    <div class="card p-4"><p class="text-gray-500 text-xs">总运单数</p><p id="total-orders" class="text-xl font-bold">0</p></div>
-                    <div class="card p-4"><p class="text-gray-500 text-xs">总收入(元)</p><p id="total-income" class="text-xl font-bold number">0</p></div>
-                    <div class="card p-4"><p class="text-gray-500 text-xs">总成本(元)</p><p id="total-cost" class="text-xl font-bold number">0</p></div>
-                    <div class="card p-4"><p class="text-gray-500 text-xs">总利润(元)</p><p id="total-profit" class="text-xl font-bold number">0</p></div>
-                    <div class="card p-4"><p class="text-gray-500 text-xs">利润率</p><p id="profit-rate" class="text-xl font-bold">0%</p></div>
-                </div>
-                <div class="grid grid-cols-4 gap-4 mb-5">
-                    <div class="card p-4"><p class="text-gray-500 text-xs">司机运费</p><p id="total-driver-fee" class="text-lg font-bold number">0</p></div>
-                    <div class="card p-4"><p class="text-gray-500 text-xs">电补</p><p id="total-electric" class="text-lg font-bold number">0</p></div>
-                    <div class="card p-4"><p class="text-gray-500 text-xs">高速费</p><p id="total-toll" class="text-lg font-bold number">0</p></div>
-                    <div class="card p-4"><p class="text-gray-500 text-xs">车租</p><p id="total-rent" class="text-lg font-bold number">0</p></div>
-                </div>
-                <div class="grid grid-cols-2 gap-4 mb-5">
-                    <div class="card p-4"><h3 class="font-semibold mb-3 text-sm">收入与利润趋势</h3><canvas id="incomeChart" height="200"></canvas></div>
-                    <div class="card p-4"><h3 class="font-semibold mb-3 text-sm">成本结构占比</h3><canvas id="costChart" height="200"></canvas></div>
-                </div>
-                <!-- 项目数据分析 -->
-                <div class="card p-4 mb-5">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="font-semibold text-sm"><i class="fas fa-folder-open mr-2 text-blue-600"></i>项目数据分析</h3>
+                <!-- 顶部工具栏：筛选 + 自定义仪表盘按钮 -->
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
                         <select id="dashboardProjectFilter" onchange="updateDashboard()" class="px-3 py-1.5 border rounded-lg text-sm">
                             <option value="">全部项目</option>
                         </select>
+                        <span class="text-xs text-gray-400"><i class="fas fa-grip-vertical mr-1"></i>拖动模块标题栏可调整顺序</span>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="text-sm">
-                            <thead>
-                                <tr>
-                                    <th>项目名称</th>
-                                    <th class="text-right">运单数</th>
-                                    <th class="text-right">总收入</th>
-                                    <th class="text-right">总成本</th>
-                                    <th class="text-right">总利润</th>
-                                    <th class="text-right">利润率</th>
-                                    <th class="text-right">平均利润/单</th>
-                                </tr>
-                            </thead>
-                            <tbody id="projectStatsTable"></tbody>
-                        </table>
-                    </div>
-                </div>
-                <!-- 项目对比图表 -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="card p-4"><h3 class="font-semibold mb-3 text-sm">各项目利润对比</h3><canvas id="projectProfitChart" height="200"></canvas></div>
-                    <div class="card p-4"><h3 class="font-semibold mb-3 text-sm">各项目运单数对比</h3><canvas id="projectOrderChart" height="200"></canvas></div>
+                    <button onclick="openWidgetModal()" class="btn-primary text-sm"><i class="fas fa-th-large mr-1"></i>自定义仪表盘</button>
                 </div>
 
-                <!-- 月度项目经营分析 -->
-                <div class="mt-5">
-                    <div class="flex items-center justify-between mb-3">
-                        <h3 class="font-bold text-sm text-gray-700"><i class="fas fa-chart-bar mr-2 text-indigo-600"></i>月度项目经营分析 <span class="text-xs font-normal text-gray-400 ml-2" id="biz-analysis-title"></span></h3>
-                        <div class="flex gap-2">
-                            <button onclick="toggleBizChart('bar')" id="biz-btn-bar" class="text-xs px-3 py-1 rounded border border-indigo-400 text-indigo-600 bg-indigo-50 font-medium">柱状图</button>
-                            <button onclick="toggleBizChart('table')" id="biz-btn-table" class="text-xs px-3 py-1 rounded border border-gray-300 text-gray-500 bg-white">数据表</button>
+                <!-- 自定义仪表盘区域 -->
+                <div id="custom-widgets-area" class="mb-4"></div>
+
+                <!-- 可拖拽模块容器 -->
+                <div id="drag-container">
+                    <!-- 模块 1：KPI 卡片 -->
+                    <div class="drag-module mb-5" data-module="kpi">
+                        <div class="flex items-center mb-2">
+                            <span class="drag-handle" title="拖动排序"><i class="fas fa-grip-vertical"></i></span>
+                            <span class="text-xs text-gray-400 ml-1 font-medium">核心指标</span>
+                        </div>
+                        <div class="grid grid-cols-5 gap-4">
+                            <div class="card p-4"><p class="text-gray-500 text-xs">总运单数</p><p id="total-orders" class="text-xl font-bold">0</p></div>
+                            <div class="card p-4"><p class="text-gray-500 text-xs">总收入(元)</p><p id="total-income" class="text-xl font-bold number">0</p></div>
+                            <div class="card p-4"><p class="text-gray-500 text-xs">总成本(元)</p><p id="total-cost" class="text-xl font-bold number">0</p></div>
+                            <div class="card p-4"><p class="text-gray-500 text-xs">总利润(元)</p><p id="total-profit" class="text-xl font-bold number">0</p></div>
+                            <div class="card p-4"><p class="text-gray-500 text-xs">利润率</p><p id="profit-rate" class="text-xl font-bold">0%</p></div>
                         </div>
                     </div>
-                    <!-- 图表视图 -->
-                    <div id="biz-chart-view" class="grid grid-cols-2 gap-4 mb-4">
-                        <div class="card p-4"><h4 class="text-xs text-gray-500 mb-2">各项目收入 vs 支出（元）</h4><canvas id="bizIncomeChart" height="220"></canvas></div>
-                        <div class="card p-4"><h4 class="text-xs text-gray-500 mb-2">各项目毛利（元）</h4><canvas id="bizProfitChart" height="220"></canvas></div>
-                        <div class="card p-4"><h4 class="text-xs text-gray-500 mb-2">各项目发车次（上月 vs 当月）</h4><canvas id="bizTripsChart" height="220"></canvas></div>
-                        <div class="card p-4"><h4 class="text-xs text-gray-500 mb-2">成本结构占比（各项目）</h4><canvas id="bizCostChart" height="220"></canvas></div>
-                    </div>
-                    <!-- 数据表视图 -->
-                    <div id="biz-table-view" class="card hidden">
-                        <div class="overflow-x-auto">
-                            <table class="text-xs" id="bizDataTable">
-                                <thead>
-                                    <tr>
-                                        <th>类型</th><th>项目名称</th>
-                                        <th class="text-right">上月发车</th><th class="text-right">当月发车</th><th class="text-right">车次变化</th>
-                                        <th class="text-right">上月收入</th><th class="text-right">当月收入</th><th class="text-right">收入变化</th>
-                                        <th class="text-right">上月支出</th><th class="text-right">当月支出</th><th class="text-right">支出变化</th>
-                                        <th class="text-right">毛利</th><th class="text-right">毛利率</th>
-                                        <th class="text-right">司机运费</th><th class="text-right">电补</th><th class="text-right">高速费</th>
-                                        <th class="text-right">在用车辆</th><th class="text-right">实际运营</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="bizTableBody"></tbody>
-                                <tfoot id="bizTableFoot"></tfoot>
-                            </table>
+
+                    <!-- 模块 2：成本细项 -->
+                    <div class="drag-module mb-5" data-module="cost-detail">
+                        <div class="flex items-center mb-2">
+                            <span class="drag-handle" title="拖动排序"><i class="fas fa-grip-vertical"></i></span>
+                            <span class="text-xs text-gray-400 ml-1 font-medium">成本细项</span>
                         </div>
+                        <div class="grid grid-cols-4 gap-4">
+                            <div class="card p-4"><p class="text-gray-500 text-xs">司机运费</p><p id="total-driver-fee" class="text-lg font-bold number">0</p></div>
+                            <div class="card p-4"><p class="text-gray-500 text-xs">电补</p><p id="total-electric" class="text-lg font-bold number">0</p></div>
+                            <div class="card p-4"><p class="text-gray-500 text-xs">高速费</p><p id="total-toll" class="text-lg font-bold number">0</p></div>
+                            <div class="card p-4"><p class="text-gray-500 text-xs">车租</p><p id="total-rent" class="text-lg font-bold number">0</p></div>
+                        </div>
+                    </div>
+
+                    <!-- 模块 3：收入利润趋势 + 成本结构 -->
+                    <div class="drag-module mb-5" data-module="charts">
+                        <div class="flex items-center mb-2">
+                            <span class="drag-handle" title="拖动排序"><i class="fas fa-grip-vertical"></i></span>
+                            <span class="text-xs text-gray-400 ml-1 font-medium">趋势图表</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="card p-4"><h3 class="font-semibold mb-3 text-sm">收入与利润趋势</h3><canvas id="incomeChart" height="200"></canvas></div>
+                            <div class="card p-4"><h3 class="font-semibold mb-3 text-sm">成本结构占比</h3><canvas id="costChart" height="200"></canvas></div>
+                        </div>
+                    </div>
+
+                    <!-- 模块 4：项目数据分析 -->
+                    <div class="drag-module mb-5" data-module="project-stats">
+                        <div class="flex items-center mb-2">
+                            <span class="drag-handle" title="拖动排序"><i class="fas fa-grip-vertical"></i></span>
+                            <span class="text-xs text-gray-400 ml-1 font-medium">项目数据分析</span>
+                        </div>
+                        <div class="card p-4">
+                            <div class="overflow-x-auto">
+                                <table class="text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>项目名称</th>
+                                            <th class="text-right">运单数</th>
+                                            <th class="text-right">总收入</th>
+                                            <th class="text-right">总成本</th>
+                                            <th class="text-right">总利润</th>
+                                            <th class="text-right">利润率</th>
+                                            <th class="text-right">平均利润/单</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="projectStatsTable"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 模块 5：项目对比图表 -->
+                    <div class="drag-module mb-5" data-module="project-charts">
+                        <div class="flex items-center mb-2">
+                            <span class="drag-handle" title="拖动排序"><i class="fas fa-grip-vertical"></i></span>
+                            <span class="text-xs text-gray-400 ml-1 font-medium">项目对比图表</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="card p-4"><h3 class="font-semibold mb-3 text-sm">各项目利润对比</h3><canvas id="projectProfitChart" height="200"></canvas></div>
+                            <div class="card p-4"><h3 class="font-semibold mb-3 text-sm">各项目运单数对比</h3><canvas id="projectOrderChart" height="200"></canvas></div>
+                        </div>
+                    </div>
+
+                    <!-- 模块 6：月度项目经营分析 -->
+                    <div class="drag-module mb-5" data-module="biz-analysis">
+                        <div class="flex items-center mb-2">
+                            <span class="drag-handle" title="拖动排序"><i class="fas fa-grip-vertical"></i></span>
+                            <span class="text-xs text-gray-400 ml-1 font-medium">月度项目经营分析</span>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="font-bold text-sm text-gray-700"><i class="fas fa-chart-bar mr-2 text-indigo-600"></i>月度项目经营分析 <span class="text-xs font-normal text-gray-400 ml-2" id="biz-analysis-title"></span></h3>
+                                <div class="flex gap-2">
+                                    <button onclick="toggleBizChart('bar')" id="biz-btn-bar" class="text-xs px-3 py-1 rounded border border-indigo-400 text-indigo-600 bg-indigo-50 font-medium">柱状图</button>
+                                    <button onclick="toggleBizChart('table')" id="biz-btn-table" class="text-xs px-3 py-1 rounded border border-gray-300 text-gray-500 bg-white">数据表</button>
+                                </div>
+                            </div>
+                            <div id="biz-chart-view" class="grid grid-cols-2 gap-4 mb-4">
+                                <div class="card p-4"><h4 class="text-xs text-gray-500 mb-2">各项目收入 vs 支出（元）</h4><canvas id="bizIncomeChart" height="220"></canvas></div>
+                                <div class="card p-4"><h4 class="text-xs text-gray-500 mb-2">各项目毛利（元）</h4><canvas id="bizProfitChart" height="220"></canvas></div>
+                                <div class="card p-4"><h4 class="text-xs text-gray-500 mb-2">各项目发车次（上月 vs 当月）</h4><canvas id="bizTripsChart" height="220"></canvas></div>
+                                <div class="card p-4"><h4 class="text-xs text-gray-500 mb-2">成本结构占比（各项目）</h4><canvas id="bizCostChart" height="220"></canvas></div>
+                            </div>
+                            <div id="biz-table-view" class="card hidden">
+                                <div class="overflow-x-auto">
+                                    <table class="text-xs" id="bizDataTable">
+                                        <thead>
+                                            <tr>
+                                                <th>类型</th><th>项目名称</th>
+                                                <th class="text-right">上月发车</th><th class="text-right">当月发车</th><th class="text-right">车次变化</th>
+                                                <th class="text-right">上月收入</th><th class="text-right">当月收入</th><th class="text-right">收入变化</th>
+                                                <th class="text-right">上月支出</th><th class="text-right">当月支出</th><th class="text-right">支出变化</th>
+                                                <th class="text-right">毛利</th><th class="text-right">毛利率</th>
+                                                <th class="text-right">司机运费</th><th class="text-right">电补</th><th class="text-right">高速费</th>
+                                                <th class="text-right">在用车辆</th><th class="text-right">实际运营</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="bizTableBody"></tbody>
+                                        <tfoot id="bizTableFoot"></tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 自定义仪表盘弹窗 -->
+            <div id="widgetModal" class="modal">
+                <div class="modal-content" style="max-width:600px">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-base"><i class="fas fa-th-large mr-2 text-blue-600"></i>自定义仪表盘</h3>
+                        <button onclick="closeWidgetModal()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-4">勾选你需要的数据指标，点击"生成仪表盘"即可在运营概览顶部显示自定义卡片，数据实时从运单汇总获取。</p>
+                    <div class="grid grid-cols-2 gap-1 mb-5" id="widget-checklist">
+                        <!-- 由 JS 动态生成 -->
+                    </div>
+                    <div class="flex gap-3 justify-end border-t pt-4">
+                        <button onclick="clearWidgets()" class="btn-secondary text-sm">清除仪表盘</button>
+                        <button onclick="applyWidgets()" class="btn-primary text-sm"><i class="fas fa-check mr-1"></i>生成仪表盘</button>
                     </div>
                 </div>
             </div>
@@ -534,6 +618,7 @@
             loadFromCloud();
             setInterval(loadFromCloud, 60000);
             renderBizAnalysis();
+            initDrag();
         });
 
         function showTab(tab) {
@@ -715,6 +800,182 @@
             });
         }
 
+        // ====== 拖拽排序 ======
+        let dragSrc = null;
+        function initDrag() {
+            const container = document.getElementById('drag-container');
+            const modules = container.querySelectorAll('.drag-module');
+            modules.forEach(m => {
+                const handle = m.querySelector('.drag-handle');
+                m.setAttribute('draggable', 'false');
+                if (handle) {
+                    handle.addEventListener('mousedown', () => m.setAttribute('draggable', 'true'));
+                    handle.addEventListener('mouseup', () => m.setAttribute('draggable', 'false'));
+                }
+                m.addEventListener('dragstart', e => {
+                    dragSrc = m;
+                    m.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+                m.addEventListener('dragend', () => {
+                    m.classList.remove('dragging');
+                    m.setAttribute('draggable', 'false');
+                    container.querySelectorAll('.drag-module').forEach(x => x.classList.remove('drag-over'));
+                    saveDragOrder();
+                });
+                m.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (m !== dragSrc) {
+                        container.querySelectorAll('.drag-module').forEach(x => x.classList.remove('drag-over'));
+                        m.classList.add('drag-over');
+                    }
+                });
+                m.addEventListener('drop', e => {
+                    e.preventDefault();
+                    if (dragSrc && dragSrc !== m) {
+                        const allModules = [...container.querySelectorAll('.drag-module')];
+                        const srcIdx = allModules.indexOf(dragSrc);
+                        const dstIdx = allModules.indexOf(m);
+                        if (srcIdx < dstIdx) container.insertBefore(dragSrc, m.nextSibling);
+                        else container.insertBefore(dragSrc, m);
+                    }
+                    m.classList.remove('drag-over');
+                });
+            });
+            restoreDragOrder();
+        }
+
+        function saveDragOrder() {
+            const order = [...document.querySelectorAll('#drag-container .drag-module')].map(m => m.dataset.module);
+            localStorage.setItem('dashboard_module_order', JSON.stringify(order));
+        }
+
+        function restoreDragOrder() {
+            const saved = JSON.parse(localStorage.getItem('dashboard_module_order') || 'null');
+            if (!saved) return;
+            const container = document.getElementById('drag-container');
+            saved.forEach(id => {
+                const el = container.querySelector(`[data-module="${id}"]`);
+                if (el) container.appendChild(el);
+            });
+        }
+
+        // ====== 自定义仪表盘 ======
+        const WIDGET_METRICS = [
+            { id: 'orders_count', label: '总运单数', icon: 'fa-file-alt', color: '#3b82f6', calc: (data) => ({ value: data.length, unit: '条', fmt: v => v }) },
+            { id: 'total_income', label: '总收入', icon: 'fa-yen-sign', color: '#10b981', calc: (data) => ({ value: data.reduce((s,o)=>s+parseFloat(o.income||0),0), unit: '元', fmt: v => v.toFixed(2) }) },
+            { id: 'total_cost', label: '总成本', icon: 'fa-minus-circle', color: '#f59e0b', calc: (data) => {
+                const v = data.reduce((s,o)=>s+['driverFee','electricSubsidy','tollFee','rent','repairFee','laborCost'].reduce((a,k)=>a+parseFloat(o[k]||0),0),0);
+                return { value: v, unit: '元', fmt: v => v.toFixed(2) };
+            }},
+            { id: 'total_profit', label: '总利润', icon: 'fa-chart-line', color: '#8b5cf6', calc: (data) => {
+                const income = data.reduce((s,o)=>s+parseFloat(o.income||0),0);
+                const cost = data.reduce((s,o)=>s+['driverFee','electricSubsidy','tollFee','rent','repairFee','laborCost'].reduce((a,k)=>a+parseFloat(o[k]||0),0),0);
+                return { value: income - cost, unit: '元', fmt: v => v.toFixed(2), signed: true };
+            }},
+            { id: 'profit_rate', label: '利润率', icon: 'fa-percent', color: '#ec4899', calc: (data) => {
+                const income = data.reduce((s,o)=>s+parseFloat(o.income||0),0);
+                const cost = data.reduce((s,o)=>s+['driverFee','electricSubsidy','tollFee','rent','repairFee','laborCost'].reduce((a,k)=>a+parseFloat(o[k]||0),0),0);
+                const r = income > 0 ? ((income-cost)/income*100) : 0;
+                return { value: r, unit: '%', fmt: v => v.toFixed(2) };
+            }},
+            { id: 'driver_fee', label: '司机运费', icon: 'fa-user', color: '#6366f1', calc: (data) => ({ value: data.reduce((s,o)=>s+parseFloat(o.driverFee||0),0), unit: '元', fmt: v => v.toFixed(2) }) },
+            { id: 'electric_subsidy', label: '电补合计', icon: 'fa-bolt', color: '#06b6d4', calc: (data) => ({ value: data.reduce((s,o)=>s+parseFloat(o.electricSubsidy||0),0), unit: '元', fmt: v => v.toFixed(2) }) },
+            { id: 'toll_fee', label: '高速费合计', icon: 'fa-road', color: '#f97316', calc: (data) => ({ value: data.reduce((s,o)=>s+parseFloat(o.tollFee||0),0), unit: '元', fmt: v => v.toFixed(2) }) },
+            { id: 'rent', label: '车租合计', icon: 'fa-truck', color: '#84cc16', calc: (data) => ({ value: data.reduce((s,o)=>s+parseFloat(o.rent||0),0), unit: '元', fmt: v => v.toFixed(2) }) },
+            { id: 'total_km', label: '总里程(km)', icon: 'fa-tachometer-alt', color: '#14b8a6', calc: (data) => ({ value: data.reduce((s,o)=>s+parseFloat(o.totalKm||0),0), unit: 'km', fmt: v => v.toFixed(1) }) },
+            { id: 'avg_income', label: '平均单票收入', icon: 'fa-balance-scale', color: '#a78bfa', calc: (data) => {
+                const v = data.length > 0 ? data.reduce((s,o)=>s+parseFloat(o.income||0),0)/data.length : 0;
+                return { value: v, unit: '元/票', fmt: v => v.toFixed(2) };
+            }},
+            { id: 'avg_profit', label: '平均单票利润', icon: 'fa-coins', color: '#fb7185', calc: (data) => {
+                const profit = data.reduce((s,o)=>s+parseFloat(o.profit||0),0);
+                const v = data.length > 0 ? profit / data.length : 0;
+                return { value: v, unit: '元/票', fmt: v => v.toFixed(2), signed: true };
+            }},
+            { id: 'receipt_rate', label: '回单率', icon: 'fa-check-circle', color: '#34d399', calc: (data) => {
+                const uploaded = data.filter(o=>o.receipt==='已上传').length;
+                const v = data.length > 0 ? (uploaded / data.length * 100) : 0;
+                return { value: v, unit: '%', fmt: v => v.toFixed(1) };
+            }},
+            { id: 'project_count', label: '活跃项目数', icon: 'fa-folder-open', color: '#f59e0b', calc: (data) => {
+                const set = new Set(data.map(o=>o.project).filter(Boolean));
+                return { value: set.size, unit: '个', fmt: v => v };
+            }},
+        ];
+
+        let activeWidgets = JSON.parse(localStorage.getItem('custom_widgets') || '[]');
+
+        function openWidgetModal() {
+            const checklist = document.getElementById('widget-checklist');
+            checklist.innerHTML = WIDGET_METRICS.map(m => `
+                <label class="metric-checkbox-item">
+                    <input type="checkbox" value="${m.id}" ${activeWidgets.includes(m.id) ? 'checked' : ''}>
+                    <i class="fas ${m.icon} text-sm" style="color:${m.color};width:16px;"></i>
+                    <span class="text-sm">${m.label}</span>
+                </label>
+            `).join('');
+            document.getElementById('widgetModal').style.display = 'block';
+        }
+
+        function closeWidgetModal() { document.getElementById('widgetModal').style.display = 'none'; }
+
+        function applyWidgets() {
+            activeWidgets = [...document.querySelectorAll('#widget-checklist input:checked')].map(cb => cb.value);
+            localStorage.setItem('custom_widgets', JSON.stringify(activeWidgets));
+            renderCustomWidgets();
+            closeWidgetModal();
+            showToast('仪表盘已更新');
+        }
+
+        function clearWidgets() {
+            activeWidgets = [];
+            localStorage.setItem('custom_widgets', '[]');
+            renderCustomWidgets();
+            closeWidgetModal();
+            showToast('已清除自定义仪表盘');
+        }
+
+        function renderCustomWidgets() {
+            const area = document.getElementById('custom-widgets-area');
+            if (!activeWidgets.length) { area.innerHTML = ''; return; }
+
+            const projectFilter = document.getElementById('dashboardProjectFilter')?.value || '';
+            let data = orders;
+            if (projectFilter) data = data.filter(o => o.project === projectFilter);
+
+            const cols = activeWidgets.length <= 3 ? activeWidgets.length : activeWidgets.length <= 6 ? 3 : 4;
+            const cards = activeWidgets.map(id => {
+                const metric = WIDGET_METRICS.find(m => m.id === id);
+                if (!metric) return '';
+                const result = metric.calc(data);
+                const displayVal = result.fmt(result.value);
+                const isNeg = result.signed && result.value < 0;
+                const isPos = result.signed && result.value >= 0;
+                return `
+                    <div class="widget-card">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs" style="background:${metric.color}">
+                                <i class="fas ${metric.icon}"></i>
+                            </span>
+                            <span class="text-xs text-gray-500">${metric.label}</span>
+                        </div>
+                        <div class="text-xl font-bold number ${isNeg?'negative':isPos?'positive':''}">${displayVal}</div>
+                        <div class="text-xs text-gray-400 mt-0.5">${result.unit}</div>
+                    </div>
+                `;
+            }).join('');
+
+            area.innerHTML = `
+                <div class="mb-2 flex items-center gap-2">
+                    <span class="text-xs font-semibold text-gray-500"><i class="fas fa-th-large mr-1 text-blue-500"></i>自定义仪表盘</span>
+                    <button onclick="openWidgetModal()" class="text-xs text-blue-500 hover:underline"><i class="fas fa-pencil-alt mr-1"></i>编辑</button>
+                </div>
+                <div class="grid gap-3 mb-5" style="grid-template-columns:repeat(${cols},1fr)">${cards}</div>
+            `;
+        }
+
         // ====== 仪表盘 ======
         function updateDashboard() {
             const projectFilter = document.getElementById('dashboardProjectFilter')?.value || document.getElementById('projectFilter')?.value;
@@ -746,6 +1007,7 @@
             document.getElementById('total-rent').textContent = totalRent.toFixed(2);
             renderCharts(data);
             renderProjectStats();
+            renderCustomWidgets();
         }
 
         function renderCharts(data) {
@@ -1256,6 +1518,7 @@
         window.onclick = function(e) {
             if (e.target === document.getElementById('orderModal')) closeModal();
             if (e.target === document.getElementById('importProjectModal')) closeImportModal();
+            if (e.target === document.getElementById('widgetModal')) closeWidgetModal();
         }
     </script>
 </body>
