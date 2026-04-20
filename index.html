@@ -515,13 +515,32 @@
         const APPWRITE_ENDPOINT = 'https://cloud.appwrite.io/v1';
         const APPWRITE_PROJECT = '69e5d73c002201096c7b';
         const APPWRITE_DATABASE = '69e5e568003ba275ee9b';
-        const APPWRITE_API_KEY = 'standard_15daf3035f45f36370d603494e409a50e2019a873b1c227f0680b903ca5d9d9b440020b6e4fbed794368feefd948171004db637997ff7c75571777363eb56f647f2c2621a310fd581ec3e9ea2e0e06cb54644698c9d8aaafb28458ab76c92dbb5711b60f1d5b14c2acda7c29eabb760f04fbadb8d27f6d6de35db2a6ad891930';
         
         // 初始化 Appwrite 客户端
-        const { Client, Databases, ID, Query } = Appwrite;
+        const { Client, Databases, Account, ID, Query } = Appwrite;
         const client = new Client();
         client.setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT);
         const databases = new Databases(client);
+        const account = new Account(client);
+        
+        // 匿名登录（浏览器端需要使用匿名会话）
+        let isAppwriteReady = false;
+        async function initAppwrite() {
+            try {
+                // 检查是否已有会话
+                try {
+                    await account.get();
+                    isAppwriteReady = true;
+                } catch (e) {
+                    // 没有会话，创建匿名会话
+                    await account.createAnonymousSession();
+                    isAppwriteReady = true;
+                }
+            } catch (e) {
+                console.error('Appwrite 初始化失败:', e);
+                showToast('云端服务连接失败，使用本地模式', 'warn');
+            }
+        }
         // =============================================
 
         let orders = [];
@@ -723,7 +742,8 @@
         }
 
         // ====== 初始化 ======
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initAppwrite();
             loadSystemName();
             loadFromCloud();
             setInterval(loadFromCloud, 60000);
