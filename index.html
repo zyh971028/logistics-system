@@ -1372,7 +1372,8 @@
                 '到店时效':'arrivalTime','回单':'receipt','温控跟踪':'tempTracking'
             };
 
-            const imported = importBuffer.map(row => {
+            // 将导入行转换为 order 对象
+            const importedParsed = importBuffer.map(row => {
                 const order = { id: Date.now().toString()+Math.random().toString(36).substr(2,5), project };
                 for (let key in row) {
                     const mappedKey = fieldMap[key];
@@ -1391,10 +1392,49 @@
                 return order;
             }).filter(o => o.trackingNo);
 
-            orders = orders.concat(imported);
+            // 按运单号智能合并：已存在则比较差异，不一致则覆盖，一致则跳过，不存在则新增
+            const checkFields = ['date','plate','driver','origin','departureTime',
+                'stop1','stop1Time','stop2','stop2Time','stop3','stop3Time',
+                'stop4','stop4Time','stop5','stop5Time','stop6','stop6Time',
+                'isFactoryDelivery','outboundKm','returnKm','totalKm',
+                'income','driverFee','electricSubsidy','tollFee','rent',
+                'repairFee','laborCost','profit','arrivalTime','receipt','tempTracking'];
+
+            function orderDataStr(o) {
+                return checkFields.map(f => String(o[f] !== undefined && o[f] !== null ? o[f] : '')).join('|');
+            }
+
+            let addCount = 0, updateCount = 0, skipCount = 0;
+            const trackingMap = {};
+            orders.forEach((o, idx) => { if (o.trackingNo) trackingMap[String(o.trackingNo)] = idx; });
+
+            importedParsed.forEach(newOrder => {
+                const key = String(newOrder.trackingNo);
+                if (trackingMap.hasOwnProperty(key)) {
+                    const existIdx = trackingMap[key];
+                    const existData = orderDataStr(orders[existIdx]);
+                    const newData = orderDataStr(newOrder);
+                    if (existData !== newData) {
+                        // 数据不一致，覆盖原数据，保留原来的 id
+                        orders[existIdx] = Object.assign({}, newOrder, { id: orders[existIdx].id });
+                        updateCount++;
+                    } else {
+                        skipCount++;
+                    }
+                } else {
+                    orders.push(newOrder);
+                    trackingMap[key] = orders.length - 1;
+                    addCount++;
+                }
+            });
+
             await saveToCloud();
             closeImportModal();
-            showToast(`成功导入 ${imported.length} 条运单到【${project}】项目`);
+            const parts = [];
+            if (addCount > 0) parts.push(`新增 ${addCount} 条`);
+            if (updateCount > 0) parts.push(`更新 ${updateCount} 条`);
+            if (skipCount > 0) parts.push(`跳过 ${skipCount} 条（数据一致）`);
+            showToast(`【${project}】导入完成：${parts.join('，')}`);
             renderOrders();
             updateDashboard();
         }
