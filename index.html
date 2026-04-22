@@ -582,7 +582,6 @@
         async function loadFromCloud() {
             setSyncStatus('ing', '同步中...');
             const localOrders = JSON.parse(localStorage.getItem('hengbing_orders') || '[]');
-            orders = localOrders;
             
             try {
                 // 从 Appwrite 读取所有运单
@@ -615,37 +614,45 @@
                     receipt: doc.receipt
                 }));
                 
-                // 云端为空，本地有数据 -> 上传本地数据
+                // 智能合并策略：优先保留本地数据，合并云端独有的记录
+                const localIds = new Set(localOrders.map(o => o.id));
+                const cloudOnlyOrders = cloudOrders.filter(o => !localIds.has(o.id));
+                
                 if (cloudOrders.length === 0 && localOrders.length > 0) {
+                    // 云端为空，本地有数据 -> 上传本地数据到云端
                     orders = localOrders;
                     await saveToCloud();
-                    showToast('云端数据为空，已恢复本地数据');
-                }
-                // 云端有数据，本地为空 -> 使用云端数据
-                else if (cloudOrders.length > 0 && localOrders.length === 0) {
+                    showToast('已上传本地数据到云端');
+                } else if (cloudOrders.length > 0 && localOrders.length === 0) {
+                    // 本地为空，云端有数据 -> 使用云端数据
                     orders = cloudOrders;
                     localStorage.setItem('hengbing_orders', JSON.stringify(orders));
                     showToast('已从云端恢复数据');
-                }
-                // 云端和本地都有数据 -> 智能合并
-                else if (cloudOrders.length > 0 && localOrders.length > 0) {
-                    const localIds = new Set(localOrders.map(o => o.id));
-                    const cloudOnlyOrders = cloudOrders.filter(o => !localIds.has(o.id));
-                    
+                } else if (cloudOrders.length > 0 && localOrders.length > 0) {
+                    // 两者都有 -> 合并（本地为主，云端补充）
                     if (cloudOnlyOrders.length > 0) {
                         orders = [...localOrders, ...cloudOnlyOrders];
                         localStorage.setItem('hengbing_orders', JSON.stringify(orders));
                         await saveToCloud();
-                        showToast(`已合并 ${cloudOnlyOrders.length} 条云端数据`);
+                        showToast(`合并完成：本地 ${localOrders.length} 条 + 云端新增 ${cloudOnlyOrders.length} 条`);
+                    } else {
+                        orders = localOrders;
+                        showToast('数据已是最新');
                     }
+                } else {
+                    // 两者都为空
+                    orders = [];
                 }
                 
                 setSyncStatus('ok', '数据已同步');
                 setLastSync();
             } catch (e) {
                 console.error('同步失败:', e);
+                // 同步失败时，强制使用本地数据，不丢失任何数据
+                orders = localOrders;
+                localStorage.setItem('hengbing_orders', JSON.stringify(orders));
                 setSyncStatus('err', '同步失败');
-                showToast('云端同步失败，显示本地缓存', 'warn');
+                showToast('云端同步失败，已保留本地数据', 'warn');
             }
             updateProjectSelects();
             updateDashboard();
@@ -670,10 +677,12 @@
                 const cloudIds = new Set(cloudDocs.map(d => d.$id));
                 const localIds = new Set(orders.map(o => o.id));
                 
-                // 删除云端已不存在于本地的数据
-                for (const doc of cloudDocs) {
-                    if (!localIds.has(doc.$id)) {
-                        await databases.deleteDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, doc.$id);
+                // 删除云端已不存在于本地的数据（只有当本地有数据时才删除）
+                if (orders.length > 0) {
+                    for (const doc of cloudDocs) {
+                        if (!localIds.has(doc.$id)) {
+                            await databases.deleteDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, doc.$id);
+                        }
                     }
                 }
                 
@@ -713,11 +722,16 @@
                 setSyncStatus('ok', '数据已同步');
                 setLastSync();
                 localStorage.setItem('hengbing_orders', JSON.stringify(orders));
-                showToast('保存成功');
             } catch (e) {
                 console.error('保存失败:', e);
+                // 保存失败不改变本地数据，只是提示用户
                 setSyncStatus('err', '保存失败');
-                showToast('云端保存失败', 'error');
+                showToast('云端保存失败，本地数据已保留', 'warn');
+            } finally {
+                isSaving = false;
+                setLoading(false);
+            }
+        }
             }
             setLoading(false);
             isSaving = false;
