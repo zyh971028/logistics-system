@@ -679,6 +679,10 @@
                 }
 
                 // 逐条上传（带重试机制，延迟更大）
+                const perms = [
+                    Appwrite.Permission.read(Appwrite.Role.any()),
+                    Appwrite.Permission.write(Appwrite.Role.any())
+                ];
                 let i = 0;
                 for (const order of orders) {
                     const data = orderToDoc(order);
@@ -686,9 +690,9 @@
                     for (let attempt = 0; attempt < 3 && !success; attempt++) {
                         try {
                             if (cloudIds.has(order.id)) {
-                                await databases.updateDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, order.id, data);
+                                await databases.updateDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, order.id, data, perms);
                             } else {
-                                await databases.createDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, order.id, data);
+                                await databases.createDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, order.id, data, perms);
                             }
                             success = true;
                         } catch (retryErr) {
