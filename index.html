@@ -732,10 +732,6 @@
                 setLoading(false);
             }
         }
-            }
-            setLoading(false);
-            isSaving = false;
-        }
 
         async function syncData() { await loadFromCloud(); showToast('数据已刷新'); }
 
@@ -756,13 +752,17 @@
         }
 
         // ====== 初始化 ======
-        document.addEventListener('DOMContentLoaded', async () => {
-            await initAppwrite();
-            loadSystemName();
-            loadFromCloud();
-            setInterval(loadFromCloud, 60000);
-            renderBizAnalysis();
-            initDrag();
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                await initAppwrite();
+                loadSystemName();
+                await loadFromCloud();
+                setInterval(function() { loadFromCloud(); }, 60000);
+                renderBizAnalysis();
+                initDrag();
+            } catch (err) {
+                console.error('初始化失败:', err);
+            }
         });
 
         function showTab(tab) {
