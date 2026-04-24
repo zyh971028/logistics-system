@@ -658,6 +658,8 @@
             isSaving = true;
             setSyncStatus('ing', '保存中...');
             setLoading(true);
+            // 先存本地，无论云端是否成功数据都不会丢
+            localStorage.setItem('hengbing_orders', JSON.stringify(orders));
             try {
                 const response = await databases.listDocuments(
                     APPWRITE_DATABASE, COLLECTION_ORDERS, [Query.limit(10000)]
@@ -671,22 +673,36 @@
                     for (const doc of cloudDocs) {
                         if (!localIds.has(doc.$id)) {
                             await databases.deleteDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, doc.$id);
+                            await new Promise(r => setTimeout(r, 200));
                         }
                     }
                 }
 
-                // 逐条上传（带延迟避免触发速率限制）
+                // 逐条上传（带重试机制，延迟更大）
                 let i = 0;
                 for (const order of orders) {
                     const data = orderToDoc(order);
-                    if (cloudIds.has(order.id)) {
-                        await databases.updateDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, order.id, data);
-                    } else {
-                        await databases.createDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, order.id, data);
+                    let success = false;
+                    for (let attempt = 0; attempt < 3 && !success; attempt++) {
+                        try {
+                            if (cloudIds.has(order.id)) {
+                                await databases.updateDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, order.id, data);
+                            } else {
+                                await databases.createDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, order.id, data);
+                            }
+                            success = true;
+                        } catch (retryErr) {
+                            if (attempt < 2) {
+                                // 失败则等待后重试
+                                await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+                            } else {
+                                throw retryErr; // 3次都失败则抛出
+                            }
+                        }
                     }
                     i++;
-                    // 每10条暂停100ms，避免速率限制
-                    if (i % 10 === 0) await new Promise(r => setTimeout(r, 100));
+                    // 每5条暂停300ms，大幅降低触发速率限制的概率
+                    if (i % 5 === 0) await new Promise(r => setTimeout(r, 300));
                 }
 
                 setSyncStatus('ok', '数据已同步');
@@ -694,8 +710,7 @@
                 localStorage.setItem('hengbing_orders', JSON.stringify(orders));
             } catch (e) {
                 console.error('保存失败:', e);
-                // 保存失败不改变本地数据，只是提示用户
-                setSyncStatus('err', '保存失败');
+                setSyncStatus('err', '保存失败，本地已保留');
                 showToast('云端保存失败，本地数据已保留', 'warn');
             } finally {
                 isSaving = false;
@@ -706,7 +721,15 @@
         async function syncData() { await loadFromCloud(); showToast('数据已刷新'); }
 
         // ====== UI 辅助 ======
-        function setLoading(show) { document.getElementById('loading-bar').classList.toggle('hidden', !show); }
+        function setLoading(show) {
+            const bar = document.getElementById('loading-bar');
+            if (show) {
+                bar.classList.remove('hidden');
+            } else {
+                bar.classList.add('hidden');
+            }
+            console.log('setLoading:', show, 'hidden class:', bar.classList.contains('hidden'));
+        }
         function setSyncStatus(type, text) {
             const el = document.getElementById('sync-status');
             el.className = 'sync-badge sync-' + type;
