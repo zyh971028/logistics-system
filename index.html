@@ -210,8 +210,8 @@
                         </div>
                     </div>
 
-                    <!-- 模块 4：项目数据分析 -->
-                    <div class="drag-module mb-5" data-module="project-stats">
+                    <!-- 模块 4：项目数据分析（已隐藏） -->
+                    <div class="drag-module mb-5 hidden" data-module="project-stats">
                         <div class="flex items-center mb-2">
                             <span class="drag-handle" title="拖动排序"><i class="fas fa-grip-vertical"></i></span>
                             <span class="text-xs text-gray-400 ml-1 font-medium">项目数据分析</span>
@@ -279,7 +279,7 @@
                                                 <th class="text-right">上月支出</th><th class="text-right">当月支出</th><th class="text-right">支出变化</th>
                                                 <th class="text-right">毛利</th><th class="text-right">毛利率</th>
                                                 <th class="text-right">司机运费</th><th class="text-right">电补</th><th class="text-right">高速费</th>
-                                                <th class="text-right">在用车辆</th><th class="text-right">实际运营</th>
+                                                <th class="text-right">在用车辆</th><th class="text-right">实际运营</th><th class="text-right">平均利润/单</th>
                                             </tr>
                                         </thead>
                                         <tbody id="bizTableBody"></tbody>
@@ -889,9 +889,11 @@
                     o.date <= lastMonthEnd
                 );
                 
-                // 计算车次（运单数）
-                const cur_trips = curOrders.length;
-                const last_trips = lastOrders.length;
+                // 计算车次（运单数）- 只统计有运费收入的
+                const curOrdersWithIncome = curOrders.filter(o => parseFloat(o.income || 0) > 0);
+                const lastOrdersWithIncome = lastOrders.filter(o => parseFloat(o.income || 0) > 0);
+                const cur_trips = curOrdersWithIncome.length;
+                const last_trips = lastOrdersWithIncome.length;
                 const trips_change_rate = last_trips > 0 ? (cur_trips - last_trips) / last_trips : (cur_trips > 0 ? 1 : 0);
                 
                 // 计算收入
@@ -924,9 +926,12 @@
                 const repair_fee = curOrders.reduce((s, o) => s + parseFloat(o.repairFee || 0), 0);
                 const staff_cost = curOrders.reduce((s, o) => s + parseFloat(o.laborCost || 0), 0);
                 
-                // 车辆数（按车牌去重，标准化处理：去空格、转大写）
-                const car_count = [...new Set(curOrders.map(o => o.plate).filter(Boolean).map(p => p.toString().trim().toUpperCase()))].length;
+                // 车辆数（按车牌去重，只统计有运费收入的车次，标准化处理：去空格、转大写）
+                const activePlates = [...new Set(curOrdersWithIncome.map(o => o.plate).filter(Boolean).map(p => p.toString().trim().toUpperCase()))];
+                const car_count = activePlates.length;
                 const active_car_count = car_count;
+                // 平均利润/单
+                const avg_profit_per_order = cur_trips > 0 ? gross_profit / cur_trips : 0;
                 
                 return {
                     category, name: projectName,
@@ -935,7 +940,8 @@
                     last_cost, cur_cost, cost_change_rate,
                     driver_fee, car_group_cost, electricity_subsidy, highway_fee,
                     loading_fee, platform_fee, repair_fee, staff_cost,
-                    gross_profit, gross_margin, car_count, active_car_count
+                    gross_profit, gross_margin, car_count, active_car_count,
+                    avg_profit_per_order
                 };
             }).filter(p => p.cur_trips > 0 || p.last_trips > 0); // 只显示有数据的项目
             
@@ -963,6 +969,7 @@
             total.income_change_rate = total.last_income > 0 ? (total.cur_income - total.last_income) / total.last_income : 0;
             total.cost_change_rate = total.last_cost > 0 ? (total.cur_cost - total.last_cost) / total.last_cost : 0;
             total.gross_margin = total.cur_income > 0 ? total.gross_profit / total.cur_income : 0;
+            total.avg_profit_per_order = total.cur_trips > 0 ? total.gross_profit / total.cur_trips : 0;
             
             return { title, projects, total };
         }
@@ -1015,6 +1022,7 @@
                     <td class="text-right">${fmt(p.highway_fee||0)}</td>
                     <td class="text-right">${fmt(p.car_count)}</td>
                     <td class="text-right">${fmt(p.active_car_count)}</td>
+                    <td class="text-right font-medium" style="${changeColor(p.avg_profit_per_order)}">${fmt(p.avg_profit_per_order, 1)}</td>
                 </tr>`).join('');
             const t = d.total;
             document.getElementById('bizTableFoot').innerHTML = `
@@ -1033,7 +1041,10 @@
                     <td class="text-right text-xs" style="${changeColor(t.gross_margin)}">${fmtPct(t.gross_margin)}</td>
                     <td class="text-right">${fmt(t.driver_fee)}</td>
                     <td class="text-right">${fmt(t.electricity_subsidy)}</td>
-                    <td colspan="3"></td>
+                    <td class="text-right">${fmt(t.highway_fee)}</td>
+                    <td class="text-right">${fmt(t.car_count)}</td>
+                    <td class="text-right">${fmt(t.active_car_count)}</td>
+                    <td class="text-right font-medium" style="${changeColor(t.avg_profit_per_order)}">${fmt(t.avg_profit_per_order, 1)}</td>
                 </tr>`;
         }
 
