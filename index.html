@@ -660,65 +660,97 @@
             setLoading(true);
             // 先存本地，无论云端是否成功数据都不会丢
             localStorage.setItem('hengbing_orders', JSON.stringify(orders));
+            
+            // 超时控制：最多等待 60 秒
+            const SAVE_TIMEOUT = 60000;
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('保存超时（60秒）')), SAVE_TIMEOUT);
+            });
+            
             try {
-                const response = await databases.listDocuments(
+                console.log('[saveToCloud] 开始保存，订单数：', orders.length);
+                
+                // 并发请求，增加超时
+                const listPromise = databases.listDocuments(
                     APPWRITE_DATABASE, COLLECTION_ORDERS, [Query.limit(10000)]
                 );
+                const response = await Promise.race([listPromise, timeoutPromise]);
+                
                 const cloudDocs = response.documents;
                 const cloudIds = new Set(cloudDocs.map(d => d.$id));
                 const localIds = new Set(orders.map(o => o.id));
+                console.log('[saveToCloud] 云端文档数：', cloudDocs.length, '本地订单数：', orders.length);
 
-                // 删除云端多余的
-                if (orders.length > 0) {
-                    for (const doc of cloudDocs) {
-                        if (!localIds.has(doc.$id)) {
+                // 删除云端多余的（分批删除，增加延迟）
+                let deleteCount = 0;
+                for (const doc of cloudDocs) {
+                    if (!localIds.has(doc.$id)) {
+                        try {
                             await databases.deleteDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, doc.$id);
-                            await new Promise(r => setTimeout(r, 200));
+                            deleteCount++;
+                            // 每删除 3 条暂停 500ms
+                            if (deleteCount % 3 === 0) await new Promise(r => setTimeout(r, 500));
+                        } catch (delErr) {
+                            console.warn('[saveToCloud] 删除失败：', doc.$id, delErr.message);
                         }
                     }
                 }
+                console.log('[saveToCloud] 删除了', deleteCount, '条云端多余数据');
 
-                // 逐条上传（带重试机制，延迟更大）
+                // 批量上传（分批，每批 10 条，批间延迟 1 秒）
                 const perms = [
                     Appwrite.Permission.read(Appwrite.Role.any()),
                     Appwrite.Permission.write(Appwrite.Role.any())
                 ];
-                let i = 0;
-                for (const order of orders) {
-                    const data = orderToDoc(order);
-                    let success = false;
-                    for (let attempt = 0; attempt < 3 && !success; attempt++) {
+                let successCount = 0;
+                let failCount = 0;
+                const BATCH_SIZE = 10;
+                
+                for (let i = 0; i < orders.length; i += BATCH_SIZE) {
+                    const batch = orders.slice(i, i + BATCH_SIZE);
+                    console.log(`[saveToCloud] 上传批次 ${Math.floor(i/BATCH_SIZE)+1}/${Math.ceil(orders.length/BATCH_SIZE)}，本批 ${batch.length} 条`);
+                    
+                    // 批次内并发上传
+                    const batchPromises = batch.map(async (order) => {
+                        const data = orderToDoc(order);
                         try {
                             if (cloudIds.has(order.id)) {
                                 await databases.updateDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, order.id, data, perms);
                             } else {
                                 await databases.createDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, order.id, data, perms);
                             }
-                            success = true;
-                        } catch (retryErr) {
-                            if (attempt < 2) {
-                                // 失败则等待后重试
-                                await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
-                            } else {
-                                throw retryErr; // 3次都失败则抛出
-                            }
+                            return { success: true };
+                        } catch (err) {
+                            console.warn('[saveToCloud] 上传失败：', order.id, err.message);
+                            return { success: false, error: err };
                         }
+                    });
+                    
+                    const batchResults = await Promise.all(batchPromises);
+                    successCount += batchResults.filter(r => r.success).length;
+                    failCount += batchResults.filter(r => !r.success).length;
+                    
+                    // 批间延迟 1 秒，避免速率限制
+                    if (i + BATCH_SIZE < orders.length) {
+                        await new Promise(r => setTimeout(r, 1000));
                     }
-                    i++;
-                    // 每5条暂停300ms，大幅降低触发速率限制的概率
-                    if (i % 5 === 0) await new Promise(r => setTimeout(r, 300));
                 }
-
+                
+                console.log(`[saveToCloud] 完成：成功 ${successCount} 条，失败 ${failCount} 条`);
                 setSyncStatus('ok', '数据已同步');
                 setLastSync();
                 localStorage.setItem('hengbing_orders', JSON.stringify(orders));
+                if (failCount > 0) {
+                    showToast(`同步完成，但 ${failCount} 条数据失败`, 'warn');
+                }
             } catch (e) {
-                console.error('保存失败:', e);
+                console.error('[saveToCloud] 保存失败:', e);
                 setSyncStatus('err', '保存失败，本地已保留');
-                showToast('云端保存失败，本地数据已保留', 'warn');
+                showToast('云端保存失败：' + e.message.slice(0, 50), 'warn');
             } finally {
                 isSaving = false;
                 setLoading(false);
+                console.log('[saveToCloud] 结束');
             }
         }
 
