@@ -563,6 +563,9 @@
         let isSaving = false;
         let selectedIds = new Set();
         let importBuffer = null;
+        // 增量同步：记录已同步到云端的订单ID，以及待删除的云端ID
+        let syncedOrderIds = new Set();
+        let deletedOrderIds = [];  // 本地删除但可能还在云端的ID，下次同步时清理
 
         // ====== Appwrite 云端读写 ======
         const COLLECTION_ORDERS = 'orders';
@@ -606,39 +609,57 @@
         async function loadFromCloud() {
             setSyncStatus('ing', '同步中...');
             const localOrders = JSON.parse(localStorage.getItem('hengbing_orders') || '[]');
+            // 从 localStorage 恢复同步状态
+            try {
+                const saved = localStorage.getItem('hengbing_synced_ids');
+                syncedOrderIds = saved ? new Set(JSON.parse(saved)) : new Set();
+            } catch(e) { syncedOrderIds = new Set(); }
+            try {
+                deletedOrderIds = JSON.parse(localStorage.getItem('hengbing_deleted_ids') || '[]');
+            } catch(e) { deletedOrderIds = []; }
+
             try {
                 const response = await databases.listDocuments(
                     APPWRITE_DATABASE, COLLECTION_ORDERS, [Query.limit(10000)]
                 );
+                // 云端订单标记为已同步
                 const cloudOrders = response.documents.map(doc => ({
                     id: doc.$id,
-                    project: doc.project, seq: doc.seq, trackingNo: doc.trackingNo,
-                    date: doc.date, plate: doc.plate, driver: doc.driver, origin: doc.origin,
-                    departureTime: doc.departureTime, stop1: doc.stop1, stop1Time: doc.stop1Time,
-                    totalKm: doc.totalKm, income: doc.income, driverFee: doc.driverFee,
-                    electricSubsidy: doc.electricSubsidy, tollFee: doc.tollFee, rent: doc.rent,
-                    profit: doc.profit, arrivalTime: doc.arrivalTime, receipt: doc.receipt
+                    project: doc.project, seq: parseInt(doc.seq)||0, trackingNo: doc.trackingNo||'',
+                    date: doc.date||'', plate: doc.plate||'', driver: doc.driver||'',
+                    origin: doc.origin||'', departureTime: doc.departureTime||'',
+                    stop1: doc.stop1||'', stop1Time: doc.stop1Time||'',
+                    totalKm: doc.totalKm||'', income: parseFloat(doc.income)||0,
+                    driverFee: parseFloat(doc.driverFee)||0,
+                    electricSubsidy: parseFloat(doc.electricSubsidy)||0,
+                    tollFee: parseFloat(doc.tollFee)||0, rent: parseFloat(doc.rent)||0,
+                    profit: parseFloat(doc.profit)||0,
+                    arrivalTime: doc.arrivalTime||'', receipt: doc.receipt||'',
+                    synced: true
                 }));
 
                 if (cloudOrders.length === 0 && localOrders.length > 0) {
-                    // 云端空，本地有 → 上传本地
-                    orders = localOrders;
+                    // 云端空，本地有 → 标记本地为未同步，准备上传
+                    orders = localOrders.map(o => ({...o, synced: false}));
                     setSyncStatus('ok', '数据已同步');
                     setLastSync();
                     updateProjectSelects(); updateDashboard(); renderOrders(); renderProjects();
                     await saveToCloud();
                     return;
                 } else if (cloudOrders.length > 0) {
-                    // 云端有数据 → 以云端为准，补充本地独有
                     const cloudIds = new Set(cloudOrders.map(o => o.id));
-                    const localOnly = localOrders.filter(o => !cloudIds.has(o.id));
+                    // 本地独有 → 标记为未同步（需要上传到云端）
+                    const localOnly = localOrders.filter(o => !cloudIds.has(o.id)).map(o => ({...o, synced: false}));
                     if (localOnly.length > 0) {
                         orders = [...cloudOrders, ...localOnly];
                         await saveToCloud();
                     } else {
                         orders = cloudOrders;
                     }
+                    // 更新 syncedOrderIds
+                    orders.forEach(o => { if(o.synced) syncedOrderIds.add(o.id); });
                     localStorage.setItem('hengbing_orders', JSON.stringify(orders));
+                    localStorage.setItem('hengbing_synced_ids', JSON.stringify([...syncedOrderIds]));
                 } else {
                     orders = [];
                 }
@@ -658,99 +679,86 @@
             isSaving = true;
             setSyncStatus('ing', '保存中...');
             setLoading(true);
-            // 先存本地，无论云端是否成功数据都不会丢
             localStorage.setItem('hengbing_orders', JSON.stringify(orders));
-            
-            // 超时控制：最多等待 60 秒
-            const SAVE_TIMEOUT = 60000;
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error('保存超时（60秒）')), SAVE_TIMEOUT);
-            });
-            
+            localStorage.setItem('hengbing_synced_ids', JSON.stringify([...syncedOrderIds]));
+            localStorage.setItem('hengbing_deleted_ids', JSON.stringify(deletedOrderIds));
+
             try {
-                console.log('[saveToCloud] 开始保存，订单数：', orders.length);
-                
-                // 并发请求，增加超时
-                const listPromise = databases.listDocuments(
-                    APPWRITE_DATABASE, COLLECTION_ORDERS, [Query.limit(10000)]
-                );
-                const response = await Promise.race([listPromise, timeoutPromise]);
-                
-                const cloudDocs = response.documents;
-                const cloudIds = new Set(cloudDocs.map(d => d.$id));
-                const localIds = new Set(orders.map(o => o.id));
-                console.log('[saveToCloud] 云端文档数：', cloudDocs.length, '本地订单数：', orders.length);
-
-                // 删除云端多余的（分批删除，增加延迟）
-                let deleteCount = 0;
-                for (const doc of cloudDocs) {
-                    if (!localIds.has(doc.$id)) {
-                        try {
-                            await databases.deleteDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, doc.$id);
-                            deleteCount++;
-                            // 每删除 3 条暂停 500ms
-                            if (deleteCount % 3 === 0) await new Promise(r => setTimeout(r, 500));
-                        } catch (delErr) {
-                            console.warn('[saveToCloud] 删除失败：', doc.$id, delErr.message);
-                        }
-                    }
-                }
-                console.log('[saveToCloud] 删除了', deleteCount, '条云端多余数据');
-
-                // 批量上传（分批，每批 10 条，批间延迟 1 秒）
                 const perms = [
                     Appwrite.Permission.read(Appwrite.Role.any()),
                     Appwrite.Permission.write(Appwrite.Role.any())
                 ];
-                let successCount = 0;
-                let failCount = 0;
-                const BATCH_SIZE = 10;
-                
-                for (let i = 0; i < orders.length; i += BATCH_SIZE) {
-                    const batch = orders.slice(i, i + BATCH_SIZE);
-                    console.log(`[saveToCloud] 上传批次 ${Math.floor(i/BATCH_SIZE)+1}/${Math.ceil(orders.length/BATCH_SIZE)}，本批 ${batch.length} 条`);
-                    
-                    // 批次内并发上传
-                    const batchPromises = batch.map(async (order) => {
-                        const data = orderToDoc(order);
+
+                // ① 只上传未同步的订单（synced !== true）
+                const unsynced = orders.filter(o => o.synced !== true);
+                console.log('[saveToCloud] 未同步订单数：', unsynced.length, '/', orders.length);
+
+                let successCount = 0, failCount = 0;
+
+                for (let i = 0; i < unsynced.length; i++) {
+                    const order = unsynced[i];
+                    const data = orderToDoc(order);
+                    let success = false;
+
+                    for (let attempt = 0; attempt < 3 && !success; attempt++) {
                         try {
-                            if (cloudIds.has(order.id)) {
+                            // 已存在于云端 → 更新；否则 → 创建
+                            if (syncedOrderIds.has(order.id)) {
                                 await databases.updateDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, order.id, data, perms);
                             } else {
                                 await databases.createDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, order.id, data, perms);
                             }
-                            return { success: true };
+                            success = true;
+                            order.synced = true;
+                            syncedOrderIds.add(order.id);
+                            successCount++;
                         } catch (err) {
-                            console.warn('[saveToCloud] 上传失败：', order.id, err.message);
-                            return { success: false, error: err };
+                            console.warn(`[saveToCloud] 失败(${attempt+1})：`, order.id, err.message);
+                            if (attempt < 2) {
+                                await new Promise(r => setTimeout(r, err.message.includes('429') ? 2000 : 500));
+                            } else {
+                                failCount++;
+                            }
                         }
-                    });
-                    
-                    const batchResults = await Promise.all(batchPromises);
-                    successCount += batchResults.filter(r => r.success).length;
-                    failCount += batchResults.filter(r => !r.success).length;
-                    
-                    // 批间延迟 1 秒，避免速率限制
-                    if (i + BATCH_SIZE < orders.length) {
-                        await new Promise(r => setTimeout(r, 1000));
+                    }
+                    // 每处理一条，间隔 500ms
+                    if (i < unsynced.length - 1) {
+                        await new Promise(r => setTimeout(r, 500));
                     }
                 }
-                
-                console.log(`[saveToCloud] 完成：成功 ${successCount} 条，失败 ${failCount} 条`);
+
+                // ② 清理云端已删除的订单（异步，不阻塞）
+                if (deletedOrderIds.length > 0) {
+                    console.log('[saveToCloud] 清理已删除订单：', deletedOrderIds.length, '条');
+                    const stillDeleted = [];
+                    for (const id of deletedOrderIds) {
+                        try {
+                            await databases.deleteDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, id);
+                            syncedOrderIds.delete(id);
+                            console.log('[saveToCloud] 已删除云端：', id);
+                        } catch (e) {
+                            // 已被删除或不存在，忽略
+                            syncedOrderIds.delete(id);
+                        }
+                        await new Promise(r => setTimeout(r, 300));
+                    }
+                    deletedOrderIds = [];
+                    localStorage.setItem('hengbing_deleted_ids', JSON.stringify([]));
+                }
+
+                localStorage.setItem('hengbing_synced_ids', JSON.stringify([...syncedOrderIds]));
+                localStorage.setItem('hengbing_orders', JSON.stringify(orders));
                 setSyncStatus('ok', '数据已同步');
                 setLastSync();
-                localStorage.setItem('hengbing_orders', JSON.stringify(orders));
-                if (failCount > 0) {
-                    showToast(`同步完成，但 ${failCount} 条数据失败`, 'warn');
-                }
+                console.log(`[saveToCloud] 完成：成功 ${successCount}，失败 ${failCount}`);
+                if (failCount > 0) showToast(`同步完成，${failCount} 条失败`, 'warn');
             } catch (e) {
-                console.error('[saveToCloud] 保存失败:', e);
-                setSyncStatus('err', '保存失败，本地已保留');
-                showToast('云端保存失败：' + e.message.slice(0, 50), 'warn');
+                console.error('[saveToCloud] 失败:', e);
+                setSyncStatus('err', '保存失败');
+                showToast('保存失败：' + (e.message||'').slice(0, 40), 'warn');
             } finally {
                 isSaving = false;
                 setLoading(false);
-                console.log('[saveToCloud] 结束');
             }
         }
 
@@ -1598,13 +1606,13 @@
         async function saveOrder(e) {
             e.preventDefault();
             const id = document.getElementById('orderId').value;
-            const order = { id: id || Date.now().toString() };
+            const order = { id: id || Date.now().toString(), synced: false };
             const fields = ['project','seq','trackingNo','date','plate','driver','origin','departureTime','isFactoryDelivery',
                 'stop1','stop1Time','stop2','stop2Time','stop3','stop3Time','stop4','stop4Time','stop5','stop5Time','stop6','stop6Time',
                 'outboundKm','returnKm','totalKm','income','driverFee','electricSubsidy','tollFee','rent','repairFee','laborCost',
                 'profit','arrivalTime','receipt','tempTracking'];
             fields.forEach(f => { const el = document.getElementById(f); if(el) order[f] = el.value; });
-            
+
             if (id) {
                 const idx = orders.findIndex(o => o.id === id);
                 if (idx >= 0) orders[idx] = order;
@@ -1620,6 +1628,9 @@
         async function deleteOrder(id) {
             if (!confirm('确定删除该运单？')) return;
             orders = orders.filter(o => o.id !== id);
+            syncedOrderIds.delete(id);
+            deletedOrderIds.push(id);
+            localStorage.setItem('hengbing_deleted_ids', JSON.stringify(deletedOrderIds));
             await saveToCloud();
             renderOrders();
             updateDashboard();
@@ -1666,9 +1677,9 @@
                 '到店时效':'arrivalTime','回单':'receipt','温控跟踪':'tempTracking'
             };
 
-            // 将导入行转换为 order 对象
+            // 将导入行转换为 order 对象（标记为未同步）
             const importedParsed = importBuffer.map(row => {
-                const order = { id: Date.now().toString()+Math.random().toString(36).substr(2,5), project };
+                const order = { id: Date.now().toString()+Math.random().toString(36).substr(2,5), project, synced: false };
                 for (let key in row) {
                     const mappedKey = fieldMap[key];
                     if (mappedKey) order[mappedKey] = row[key];
