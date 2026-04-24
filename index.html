@@ -579,85 +579,78 @@
             }
         }
         
+        function orderToDoc(order) {
+            return {
+                project: order.project || '',
+                seq: parseInt(order.seq) || 0,
+                trackingNo: order.trackingNo || '',
+                date: order.date || '',
+                plate: order.plate || '',
+                driver: order.driver || '',
+                origin: order.origin || '',
+                departureTime: order.departureTime || '',
+                stop1: order.stop1 || '',
+                stop1Time: order.stop1Time || '',
+                totalKm: String(order.totalKm || ''),
+                income: parseFloat(order.income) || 0,
+                driverFee: parseFloat(order.driverFee) || 0,
+                electricSubsidy: parseFloat(order.electricSubsidy) || 0,
+                tollFee: parseFloat(order.tollFee) || 0,
+                rent: parseFloat(order.rent) || 0,
+                profit: parseFloat(order.profit) || 0,
+                arrivalTime: order.arrivalTime || '',
+                receipt: order.receipt || ''
+            };
+        }
+
         async function loadFromCloud() {
             setSyncStatus('ing', '同步中...');
             const localOrders = JSON.parse(localStorage.getItem('hengbing_orders') || '[]');
-            
             try {
-                // 从 Appwrite 读取所有运单
                 const response = await databases.listDocuments(
-                    APPWRITE_DATABASE,
-                    COLLECTION_ORDERS,
-                    [Query.limit(10000)]
+                    APPWRITE_DATABASE, COLLECTION_ORDERS, [Query.limit(10000)]
                 );
-                
                 const cloudOrders = response.documents.map(doc => ({
                     id: doc.$id,
-                    project: doc.project,
-                    seq: doc.seq,
-                    trackingNo: doc.trackingNo,
-                    date: doc.date,
-                    plate: doc.plate,
-                    driver: doc.driver,
-                    origin: doc.origin,
-                    departureTime: doc.departureTime,
-                    stop1: doc.stop1,
-                    stop1Time: doc.stop1Time,
-                    totalKm: doc.totalKm,
-                    income: doc.income,
-                    driverFee: doc.driverFee,
-                    electricSubsidy: doc.electricSubsidy,
-                    tollFee: doc.tollFee,
-                    rent: doc.rent,
-                    profit: doc.profit,
-                    arrivalTime: doc.arrivalTime,
-                    receipt: doc.receipt
+                    project: doc.project, seq: doc.seq, trackingNo: doc.trackingNo,
+                    date: doc.date, plate: doc.plate, driver: doc.driver, origin: doc.origin,
+                    departureTime: doc.departureTime, stop1: doc.stop1, stop1Time: doc.stop1Time,
+                    totalKm: doc.totalKm, income: doc.income, driverFee: doc.driverFee,
+                    electricSubsidy: doc.electricSubsidy, tollFee: doc.tollFee, rent: doc.rent,
+                    profit: doc.profit, arrivalTime: doc.arrivalTime, receipt: doc.receipt
                 }));
-                
-                // 智能合并策略：优先保留本地数据，合并云端独有的记录
-                const localIds = new Set(localOrders.map(o => o.id));
-                const cloudOnlyOrders = cloudOrders.filter(o => !localIds.has(o.id));
-                
+
                 if (cloudOrders.length === 0 && localOrders.length > 0) {
-                    // 云端为空，本地有数据 -> 上传本地数据到云端
+                    // 云端空，本地有 → 上传本地
                     orders = localOrders;
+                    setSyncStatus('ok', '数据已同步');
+                    setLastSync();
+                    updateProjectSelects(); updateDashboard(); renderOrders(); renderProjects();
                     await saveToCloud();
-                    showToast('已上传本地数据到云端');
-                } else if (cloudOrders.length > 0 && localOrders.length === 0) {
-                    // 本地为空，云端有数据 -> 使用云端数据
-                    orders = cloudOrders;
-                    localStorage.setItem('hengbing_orders', JSON.stringify(orders));
-                    showToast('已从云端恢复数据');
-                } else if (cloudOrders.length > 0 && localOrders.length > 0) {
-                    // 两者都有 -> 合并（本地为主，云端补充）
-                    if (cloudOnlyOrders.length > 0) {
-                        orders = [...localOrders, ...cloudOnlyOrders];
-                        localStorage.setItem('hengbing_orders', JSON.stringify(orders));
+                    return;
+                } else if (cloudOrders.length > 0) {
+                    // 云端有数据 → 以云端为准，补充本地独有
+                    const cloudIds = new Set(cloudOrders.map(o => o.id));
+                    const localOnly = localOrders.filter(o => !cloudIds.has(o.id));
+                    if (localOnly.length > 0) {
+                        orders = [...cloudOrders, ...localOnly];
                         await saveToCloud();
-                        showToast(`合并完成：本地 ${localOrders.length} 条 + 云端新增 ${cloudOnlyOrders.length} 条`);
                     } else {
-                        orders = localOrders;
-                        showToast('数据已是最新');
+                        orders = cloudOrders;
                     }
+                    localStorage.setItem('hengbing_orders', JSON.stringify(orders));
                 } else {
-                    // 两者都为空
                     orders = [];
                 }
-                
                 setSyncStatus('ok', '数据已同步');
                 setLastSync();
             } catch (e) {
                 console.error('同步失败:', e);
-                // 同步失败时，强制使用本地数据，不丢失任何数据
                 orders = localOrders;
-                localStorage.setItem('hengbing_orders', JSON.stringify(orders));
                 setSyncStatus('err', '同步失败');
-                showToast('云端同步失败，已保留本地数据', 'warn');
+                showToast('云端同步失败，已使用本地数据', 'warn');
             }
-            updateProjectSelects();
-            updateDashboard();
-            renderOrders();
-            renderProjects();
+            updateProjectSelects(); updateDashboard(); renderOrders(); renderProjects();
         }
 
         async function saveToCloud() {
@@ -665,19 +658,15 @@
             isSaving = true;
             setSyncStatus('ing', '保存中...');
             setLoading(true);
-            
             try {
-                // 先读取云端现有数据
                 const response = await databases.listDocuments(
-                    APPWRITE_DATABASE,
-                    COLLECTION_ORDERS,
-                    [Query.limit(10000)]
+                    APPWRITE_DATABASE, COLLECTION_ORDERS, [Query.limit(10000)]
                 );
                 const cloudDocs = response.documents;
                 const cloudIds = new Set(cloudDocs.map(d => d.$id));
                 const localIds = new Set(orders.map(o => o.id));
-                
-                // 删除云端已不存在于本地的数据（只有当本地有数据时才删除）
+
+                // 删除云端多余的
                 if (orders.length > 0) {
                     for (const doc of cloudDocs) {
                         if (!localIds.has(doc.$id)) {
@@ -685,40 +674,21 @@
                         }
                     }
                 }
-                
-                // 创建或更新本地数据到云端
+
+                // 逐条上传（带延迟避免触发速率限制）
+                let i = 0;
                 for (const order of orders) {
-                    const data = {
-                        project: order.project,
-                        seq: order.seq,
-                        trackingNo: order.trackingNo,
-                        date: order.date,
-                        plate: order.plate,
-                        driver: order.driver,
-                        origin: order.origin,
-                        departureTime: order.departureTime || '',
-                        stop1: order.stop1 || '',
-                        stop1Time: order.stop1Time || '',
-                        totalKm: order.totalKm || '',
-                        income: parseFloat(order.income) || 0,
-                        driverFee: parseFloat(order.driverFee) || 0,
-                        electricSubsidy: parseFloat(order.electricSubsidy) || 0,
-                        tollFee: parseFloat(order.tollFee) || 0,
-                        rent: parseFloat(order.rent) || 0,
-                        profit: parseFloat(order.profit) || 0,
-                        arrivalTime: order.arrivalTime || '',
-                        receipt: order.receipt || ''
-                    };
-                    
+                    const data = orderToDoc(order);
                     if (cloudIds.has(order.id)) {
-                        // 更新现有文档
                         await databases.updateDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, order.id, data);
                     } else {
-                        // 创建新文档，使用自定义 ID
                         await databases.createDocument(APPWRITE_DATABASE, COLLECTION_ORDERS, order.id, data);
                     }
+                    i++;
+                    // 每10条暂停100ms，避免速率限制
+                    if (i % 10 === 0) await new Promise(r => setTimeout(r, 100));
                 }
-                
+
                 setSyncStatus('ok', '数据已同步');
                 setLastSync();
                 localStorage.setItem('hengbing_orders', JSON.stringify(orders));
