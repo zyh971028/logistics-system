@@ -877,7 +877,7 @@
             
             // 计算每个项目的数据
             const projects = allProjects.map(projectName => {
-                const category = PROJECT_CATEGORIES[projectName] || '其他项目';
+                const category = getProjectCategory(projectName) || '常温项目';
                 
                 // 当月运单
                 const curOrders = orders.filter(o => 
@@ -964,8 +964,11 @@
                 last_cost: projects.reduce((s, p) => s + p.last_cost, 0),
                 cur_cost: projects.reduce((s, p) => s + p.cur_cost, 0),
                 driver_fee: projects.reduce((s, p) => s + p.driver_fee, 0),
-                car_group_cost: projects.reduce((s, p) => s + p.car_group_cost, 0),
+                car_group_cost: projects.reduce((s, p) => s + (p.car_group_cost||0), 0),
                 electricity_subsidy: projects.reduce((s, p) => s + p.electricity_subsidy, 0),
+                highway_fee: projects.reduce((s, p) => s + (p.highway_fee||0), 0),
+                car_count: projects.reduce((s, p) => s + (p.car_count||0), 0),
+                active_car_count: projects.reduce((s, p) => s + (p.active_car_count||0), 0),
                 gross_profit: projects.reduce((s, p) => s + p.gross_profit, 0)
             };
             
@@ -1432,242 +1435,6 @@
                 },
                 options: {responsive:true}
             });
-        }
-
-        // ====== 月度项目经营分析（从 index_new.html 移植）======
-        function renderBizAnalysis() {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth() + 1;
-            const day = now.getDate();
-            const yearShort = year.toString().slice(2);
-            const title = `${yearShort}年${month}月1日-${day}日项目运营数据`;
-            document.getElementById('biz-analysis-title').textContent = title;
-
-            const d = calculateBizData();
-            renderBizCharts(d);
-            renderBizTable(d);
-        }
-
-        function calculateBizData() {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = now.getMonth() + 1;
-            const day = now.getDate();
-            const yearShort = year.toString().slice(2);
-
-            const title = `${yearShort}年${month}月1日-${day}日项目运营数据`;
-
-            const curMonthStart = `${year}-${String(month).padStart(2,'0')}-01`;
-            const curMonthEnd = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-
-            const lastMonth = month === 1 ? 12 : month - 1;
-            const lastMonthYear = month === 1 ? year - 1 : year;
-            const lastMonthDays = new Date(lastMonthYear, lastMonth, 0).getDate();
-            const lastMonthStart = `${lastMonthYear}-${String(lastMonth).padStart(2,'0')}-01`;
-            const lastMonthEnd = `${lastMonthYear}-${String(lastMonth).padStart(2,'0')}-${String(lastMonthDays).padStart(2,'0')}`;
-
-            const allProjects = [...new Set(orders.map(o => o.project).filter(Boolean))];
-
-            const projects = allProjects.map(projectName => {
-                const category = getProjectCategory(projectName) || '常温项目';
-
-                const curOrders = orders.filter(o =>
-                    o.project === projectName &&
-                    o.date >= curMonthStart &&
-                    o.date <= curMonthEnd
-                );
-
-                const lastOrders = orders.filter(o =>
-                    o.project === projectName &&
-                    o.date >= lastMonthStart &&
-                    o.date <= lastMonthEnd
-                );
-
-                const cur_trips = curOrders.length;
-                const last_trips = lastOrders.length;
-                const trips_change_rate = last_trips > 0 ? (cur_trips - last_trips) / last_trips : (cur_trips > 0 ? 1 : 0);
-
-                const cur_income = curOrders.reduce((s, o) => s + parseFloat(o.income || 0), 0);
-                const last_income = lastOrders.reduce((s, o) => s + parseFloat(o.income || 0), 0);
-                const income_change_rate = last_income > 0 ? (cur_income - last_income) / last_income : (cur_income > 0 ? 1 : 0);
-
-                const calcCost = (list) => list.reduce((s, o) => {
-                    return s + parseFloat(o.driverFee || 0) + parseFloat(o.electricSubsidy || 0) +
-                           parseFloat(o.tollFee || 0) + parseFloat(o.rent || 0) +
-                           parseFloat(o.repairFee || 0) + parseFloat(o.laborCost || 0);
-                }, 0);
-
-                const cur_cost = calcCost(curOrders);
-                const last_cost = calcCost(lastOrders);
-                const cost_change_rate = last_cost > 0 ? (cur_cost - last_cost) / last_cost : (cur_cost > 0 ? 1 : 0);
-
-                const gross_profit = cur_income - cur_cost;
-                const gross_margin = cur_income > 0 ? gross_profit / cur_income : 0;
-
-                const driver_fee = curOrders.reduce((s, o) => s + parseFloat(o.driverFee || 0), 0);
-                const electricity_subsidy = curOrders.reduce((s, o) => s + parseFloat(o.electricSubsidy || 0), 0);
-                const highway_fee = curOrders.reduce((s, o) => s + parseFloat(o.tollFee || 0), 0);
-
-                // 在用车辆 = 按车牌去重
-                const plates = curOrders.map(o => (o.plate || '').toString().trim().toUpperCase()).filter(Boolean);
-                const car_count = new Set(plates).size;
-                // 实际运营 = 有运费收入(income>0)的车辆去重
-                const activePlates = curOrders.filter(o => parseFloat(o.income || 0) > 0).map(o => (o.plate || '').toString().trim().toUpperCase()).filter(Boolean);
-                const active_car_count = new Set(activePlates).size;
-                // 平均利润/单
-                const avg_profit_per_order = cur_trips > 0 ? gross_profit / cur_trips : 0;
-
-                return {
-                    category, name: projectName,
-                    last_trips, cur_trips, trips_change_rate,
-                    last_income, cur_income, income_change_rate,
-                    last_cost, cur_cost, cost_change_rate,
-                    driver_fee, electricity_subsidy, highway_fee,
-                    gross_profit, gross_margin, car_count, active_car_count, avg_profit_per_order
-                };
-            }).filter(p => p.cur_trips > 0 || p.last_trips > 0);
-
-            projects.sort((a, b) => {
-                if (a.category === b.category) return a.name.localeCompare(b.name);
-                return a.category === '常温项目' ? -1 : 1;
-            });
-
-            const total = {
-                last_trips: projects.reduce((s, p) => s + p.last_trips, 0),
-                cur_trips: projects.reduce((s, p) => s + p.cur_trips, 0),
-                last_income: projects.reduce((s, p) => s + p.last_income, 0),
-                cur_income: projects.reduce((s, p) => s + p.cur_income, 0),
-                last_cost: projects.reduce((s, p) => s + p.last_cost, 0),
-                cur_cost: projects.reduce((s, p) => s + p.cur_cost, 0),
-                driver_fee: projects.reduce((s, p) => s + p.driver_fee, 0),
-                electricity_subsidy: projects.reduce((s, p) => s + p.electricity_subsidy, 0),
-                gross_profit: projects.reduce((s, p) => s + p.gross_profit, 0)
-            };
-            total.trips_change_rate = total.last_trips > 0 ? (total.cur_trips - total.last_trips) / total.last_trips : 0;
-            total.income_change_rate = total.last_income > 0 ? (total.cur_income - total.last_income) / total.last_income : 0;
-            total.cost_change_rate = total.last_cost > 0 ? (total.cur_cost - total.last_cost) / total.last_cost : 0;
-            total.gross_margin = total.cur_income > 0 ? total.gross_profit / total.cur_income : 0;
-            total.avg_profit_per_order = total.cur_trips > 0 ? total.gross_profit / total.cur_trips : 0;
-
-            return { title, projects, total };
-        }
-
-        function toggleBizChart(mode) {
-            const barBtn = document.getElementById('biz-btn-bar');
-            const tableBtn = document.getElementById('biz-btn-table');
-            const chartView = document.getElementById('biz-chart-view');
-            const tableView = document.getElementById('biz-table-view');
-            if (mode === 'bar') {
-                chartView.classList.remove('hidden');
-                tableView.classList.add('hidden');
-                barBtn.className = 'text-xs px-3 py-1 rounded border border-indigo-400 text-indigo-600 bg-indigo-50 font-medium';
-                tableBtn.className = 'text-xs px-3 py-1 rounded border border-gray-300 text-gray-500 bg-white';
-            } else {
-                chartView.classList.add('hidden');
-                tableView.classList.remove('hidden');
-                barBtn.className = 'text-xs px-3 py-1 rounded border border-gray-300 text-gray-500 bg-white';
-                tableBtn.className = 'text-xs px-3 py-1 rounded border border-indigo-400 text-indigo-600 bg-indigo-50 font-medium';
-            }
-        }
-
-        function renderBizCharts(d) {
-            const labels = d.projects.map(p => p.name);
-            const curIncome = d.projects.map(p => p.cur_income);
-            const lastIncome = d.projects.map(p => p.last_income);
-            const curCost = d.projects.map(p => p.cur_cost);
-            const grossProfit = d.projects.map(p => p.gross_profit);
-
-            if (window.bizIncomeChart) window.bizIncomeChart.destroy();
-            window.bizIncomeChart = new Chart(document.getElementById('bizIncomeChart'), {
-                type: 'bar',
-                data: { labels, datasets: [
-                    { label: '当月收入', data: curIncome, backgroundColor: '#3b82f6' },
-                    { label: '当月支出', data: curCost, backgroundColor: '#ef4444' },
-                    { label: '上月收入', data: lastIncome, backgroundColor: '#93c5fd' }
-                ]},
-                options: { responsive: true, scales: { y: { beginAtZero: true } } }
-            });
-
-            if (window.bizProfitChart) window.bizProfitChart.destroy();
-            window.bizProfitChart = new Chart(document.getElementById('bizProfitChart'), {
-                type: 'bar',
-                data: { labels, datasets: [
-                    { label: '当月毛利', data: grossProfit, backgroundColor: grossProfit.map(v => v >= 0 ? '#10b981' : '#ef4444') }
-                ]},
-                options: { responsive: true, scales: { y: { beginAtZero: true } } }
-            });
-
-            if (window.bizTripsChart) window.bizTripsChart.destroy();
-            window.bizTripsChart = new Chart(document.getElementById('bizTripsChart'), {
-                type: 'bar',
-                data: { labels, datasets: [
-                    { label: '当月车次', data: d.projects.map(p => p.cur_trips), backgroundColor: '#3b82f6' },
-                    { label: '上月车次', data: d.projects.map(p => p.last_trips), backgroundColor: '#93c5fd' }
-                ]},
-                options: { responsive: true, scales: { y: { beginAtZero: true } } }
-            });
-
-            if (window.bizCostChart) window.bizCostChart.destroy();
-            window.bizCostChart = new Chart(document.getElementById('bizCostChart'), {
-                type: 'doughnut',
-                data: { labels: ['司机运费','电补','高速费'], datasets: [{
-                    data: [d.total.driver_fee, d.total.electricity_subsidy, d.total.highway_fee],
-                    backgroundColor: ['#3b82f6','#10b981','#f59e0b']
-                }]},
-                options: { responsive: true }
-            });
-        }
-
-        function renderBizTable(d) {
-            const fmt = (v, dec=0) => v >= 10000 ? (v/10000).toFixed(1)+'万' : Number(v).toFixed(dec);
-            const fmtPct = (v) => (v*100).toFixed(1) + '%';
-            const changeColor = (v) => v > 0 ? 'color:#059669' : v < 0 ? 'color:#dc2626' : '';
-            const tbody = document.getElementById('bizTableBody');
-            tbody.innerHTML = d.projects.map(p => `
-                <tr>
-                    <td><span class="text-xs px-1.5 py-0.5 rounded ${p.category==='常温项目'?'bg-blue-100 text-blue-700':'bg-green-100 text-green-700'}">${p.category}</span></td>
-                    <td class="font-medium">${p.name}</td>
-                    <td class="text-right">${fmt(p.last_trips)}</td>
-                    <td class="text-right font-medium">${fmt(p.cur_trips)}</td>
-                    <td class="text-right text-xs" style="${changeColor(p.trips_change_rate)}">${fmtPct(p.trips_change_rate)}</td>
-                    <td class="text-right">${fmt(p.last_income,2)}</td>
-                    <td class="text-right font-medium">${fmt(p.cur_income,2)}</td>
-                    <td class="text-right text-xs" style="${changeColor(p.income_change_rate)}">${fmtPct(p.income_change_rate)}</td>
-                    <td class="text-right">${fmt(p.last_cost,2)}</td>
-                    <td class="text-right font-medium">${fmt(p.cur_cost,2)}</td>
-                    <td class="text-right text-xs" style="${changeColor(-p.cost_change_rate)}">${fmtPct(p.cost_change_rate)}</td>
-                    <td class="text-right font-medium" style="${changeColor(p.gross_profit)}">${fmt(p.gross_profit,2)}</td>
-                    <td class="text-right text-xs" style="${changeColor(p.gross_margin)}">${fmtPct(p.gross_margin)}</td>
-                    <td class="text-right">${fmt(p.driver_fee,2)}</td>
-                    <td class="text-right">${fmt(p.electricity_subsidy,2)}</td>
-                    <td class="text-right">${fmt(p.highway_fee,2)}</td>
-                    <td class="text-right">${fmt(p.car_count)}</td>
-                    <td class="text-right">${fmt(p.active_car_count)}</td>
-                    <td class="text-right font-medium" style="${changeColor(p.avg_profit_per_order)}">${fmt(p.avg_profit_per_order,1)}</td>
-                </tr>`).join('');
-            const t = d.total;
-            document.getElementById('bizTableFoot').innerHTML = `
-                <tr class="font-bold bg-gray-50 border-t-2 border-gray-300">
-                    <td colspan="2">合计</td>
-                    <td class="text-right">${fmt(t.last_trips)}</td>
-                    <td class="text-right">${fmt(t.cur_trips)}</td>
-                    <td class="text-right text-xs" style="${changeColor(t.trips_change_rate)}">${fmtPct(t.trips_change_rate)}</td>
-                    <td class="text-right">${fmt(t.last_income,2)}</td>
-                    <td class="text-right">${fmt(t.cur_income,2)}</td>
-                    <td class="text-right text-xs" style="${changeColor(t.income_change_rate)}">${fmtPct(t.income_change_rate)}</td>
-                    <td class="text-right">${fmt(t.last_cost,2)}</td>
-                    <td class="text-right">${fmt(t.cur_cost,2)}</td>
-                    <td class="text-right text-xs" style="${changeColor(-t.cost_change_rate)}">${fmtPct(t.cost_change_rate)}</td>
-                    <td class="text-right" style="${changeColor(t.gross_profit)}">${fmt(t.gross_profit,2)}</td>
-                    <td class="text-right text-xs" style="${changeColor(t.gross_margin)}">${fmtPct(t.gross_margin)}</td>
-                    <td class="text-right">${fmt(t.driver_fee,2)}</td>
-                    <td class="text-right">${fmt(t.electricity_subsidy,2)}</td>
-                    <td class="text-right">${fmt(t.highway_fee,2)}</td>
-                    <td class="text-right">${fmt(t.car_count||0)}</td>
-                    <td class="text-right">${fmt(t.active_car_count||0)}</td>
-                    <td class="text-right font-medium" style="${changeColor(t.avg_profit_per_order)}">${fmt(t.avg_profit_per_order,1)}</td>
-                </tr>`;
         }
 
         // ====== 运单列表 ======
