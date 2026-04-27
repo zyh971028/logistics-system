@@ -275,11 +275,11 @@
                                             <tr>
                                                 <th>类型</th><th>项目名称</th>
                                                 <th class="text-right">上月发车</th><th class="text-right">当月发车</th><th class="text-right">车次变化</th>
-                                                <th class="text-right">上月收入</th><th class="text-right">当月收入</th><th class="text-right">收入变化</th>
+                                                <th class="text-right">上月收入</th><th class="text-right">当月收入</th><th class="text-right">单趟均收</th><th class="text-right">收入变化</th>
                                                 <th class="text-right">上月支出</th><th class="text-right">当月支出</th><th class="text-right">支出变化</th>
                                                 <th class="text-right">毛利</th><th class="text-right">毛利率</th>
                                                 <th class="text-right">司机运费</th><th class="text-right">电补</th><th class="text-right">高速费</th>
-                                                <th class="text-right">在用车辆</th><th class="text-right">实际运营</th><th class="text-right">平均利润/单</th>
+                                                <th class="text-right">在用车辆</th><th class="text-right">实际运营</th>
                                             </tr>
                                         </thead>
                                         <tbody id="bizTableBody"></tbody>
@@ -953,11 +953,13 @@
                 const repair_fee = curOrders.reduce((s, o) => s + parseFloat(o.repairFee || 0), 0);
                 const staff_cost = curOrders.reduce((s, o) => s + parseFloat(o.laborCost || 0), 0);
                 
-                // 车辆数（按车牌去重，统计该项目所有运单的车牌号，包含没有收入的车牌号，标准化处理：去空格、转大写）
-                const activePlates = [...new Set(curOrders.map(o => o.plate).filter(Boolean).map(p => p.toString().trim().toUpperCase()))];
-                const car_count = activePlates.length;
-                const active_car_count = car_count;
-                // 平均利润/单（计算方式：当月收入 ÷ 当月发车数）
+                // 在用车辆数（按车牌去重，统计该项目所有运单的车牌号，包含没有收入的车牌号）
+                const allPlates = [...new Set(curOrders.map(o => o.plate).filter(Boolean).map(p => p.toString().trim().toUpperCase()))];
+                const car_count = allPlates.length;
+                // 实际运营数（按车牌去重，只统计有运费收入的车牌号）
+                const activePlates = [...new Set(curOrdersWithIncome.map(o => o.plate).filter(Boolean).map(p => p.toString().trim().toUpperCase()))];
+                const active_car_count = activePlates.length;
+                // 单趟均收（计算方式：当月收入 ÷ 当月发车数）
                 const avg_profit_per_order = cur_trips > 0 ? cur_income / cur_trips : 0;
                 
                 return {
@@ -999,7 +1001,8 @@
             total.income_change_rate = total.last_income > 0 ? (total.cur_income - total.last_income) / total.last_income : 0;
             total.cost_change_rate = total.last_cost > 0 ? (total.cur_cost - total.last_cost) / total.last_cost : 0;
             total.gross_margin = total.cur_income > 0 ? total.gross_profit / total.cur_income : 0;
-            total.avg_profit_per_order = total.cur_trips > 0 ? total.gross_profit / total.cur_trips : 0;
+            // 单趟均收 = 当月收入 ÷ 当月发车数
+            total.avg_profit_per_order = total.cur_trips > 0 ? total.cur_income / total.cur_trips : 0;
             
             return { title, projects, total };
         }
@@ -1041,6 +1044,7 @@
                     <td class="text-right text-xs" style="${changeColor(p.trips_change_rate)}">${fmtPct(p.trips_change_rate)}</td>
                     <td class="text-right">${fmt(p.last_income)}</td>
                     <td class="text-right font-medium">${fmt(p.cur_income)}</td>
+                    <td class="text-right font-medium" style="${changeColor(p.avg_profit_per_order)}">${fmt(p.avg_profit_per_order, 1)}</td>
                     <td class="text-right text-xs" style="${changeColor(p.income_change_rate)}">${fmtPct(p.income_change_rate)}</td>
                     <td class="text-right">${fmt(p.last_cost)}</td>
                     <td class="text-right font-medium">${fmt(p.cur_cost)}</td>
@@ -1052,7 +1056,6 @@
                     <td class="text-right">${fmt(p.highway_fee||0)}</td>
                     <td class="text-right">${fmt(p.car_count)}</td>
                     <td class="text-right">${fmt(p.active_car_count)}</td>
-                    <td class="text-right font-medium" style="${changeColor(p.avg_profit_per_order)}">${fmt(p.avg_profit_per_order, 1)}</td>
                 </tr>`).join('');
             const t = d.total;
             document.getElementById('bizTableFoot').innerHTML = `
@@ -1063,6 +1066,7 @@
                     <td class="text-right text-xs" style="${changeColor(t.trips_change_rate)}">${fmtPct(t.trips_change_rate)}</td>
                     <td class="text-right">${fmt(t.last_income)}</td>
                     <td class="text-right">${fmt(t.cur_income)}</td>
+                    <td class="text-right font-medium" style="${changeColor(t.avg_profit_per_order)}">${fmt(t.avg_profit_per_order, 1)}</td>
                     <td class="text-right text-xs" style="${changeColor(t.income_change_rate)}">${fmtPct(t.income_change_rate)}</td>
                     <td class="text-right">${fmt(t.last_cost)}</td>
                     <td class="text-right">${fmt(t.cur_cost)}</td>
@@ -1074,7 +1078,6 @@
                     <td class="text-right">${fmt(t.highway_fee)}</td>
                     <td class="text-right">${fmt(t.car_count)}</td>
                     <td class="text-right">${fmt(t.active_car_count)}</td>
-                    <td class="text-right font-medium" style="${changeColor(t.avg_profit_per_order)}">${fmt(t.avg_profit_per_order, 1)}</td>
                 </tr>`;
         }
 
