@@ -321,6 +321,7 @@
                             <input type="text" id="plateFilter" placeholder="车牌号" onkeyup="filterOrders()" class="px-3 py-1.5 border rounded-lg w-32 text-sm">
                         </div>
                         <div class="flex gap-2">
+                            <button onclick="clearOrdersOnly()" class="btn-secondary text-sm" title="清空所有运单数据"><i class="fas fa-eraser mr-1"></i>清空运单</button>
                             <button onclick="batchDelete()" id="batchDeleteBtn" class="btn-danger text-sm hidden"><i class="fas fa-trash mr-1"></i>批量删除(<span id="selectedCount">0</span>)</button>
                             <button onclick="openModal()" class="btn-primary text-sm"><i class="fas fa-plus mr-1"></i>新增运单</button>
                         </div>
@@ -1741,35 +1742,18 @@
                 return order;
             }).filter(o => o.trackingNo);
 
-            // 按运单号智能合并：已存在则比较差异，不一致则覆盖，一致则跳过，不存在则新增
-            const checkFields = ['date','plate','driver','origin','departureTime',
-                'stop1','stop1Time','stop2','stop2Time','stop3','stop3Time',
-                'stop4','stop4Time','stop5','stop5Time','stop6','stop6Time',
-                'isFactoryDelivery','outboundKm','returnKm','totalKm',
-                'income','driverFee','electricSubsidy','tollFee','rent',
-                'repairFee','laborCost','profit','arrivalTime','receipt','tempTracking'];
-
-            function orderDataStr(o) {
-                return checkFields.map(f => String(o[f] !== undefined && o[f] !== null ? o[f] : '')).join('|');
-            }
-
-            let addCount = 0, updateCount = 0, skipCount = 0;
+            // 按运单号智能合并：已存在则直接覆盖（以新导入的数据为准），不存在则新增
+            let addCount = 0, updateCount = 0;
             const trackingMap = {};
             orders.forEach((o, idx) => { if (o.trackingNo) trackingMap[String(o.trackingNo)] = idx; });
 
             importedParsed.forEach(newOrder => {
                 const key = String(newOrder.trackingNo);
                 if (trackingMap.hasOwnProperty(key)) {
+                    // 运单号已存在 → 直接用新数据覆盖，保留原来的 id
                     const existIdx = trackingMap[key];
-                    const existData = orderDataStr(orders[existIdx]);
-                    const newData = orderDataStr(newOrder);
-                    if (existData !== newData) {
-                        // 数据不一致，覆盖原数据，保留原来的 id
-                        orders[existIdx] = Object.assign({}, newOrder, { id: orders[existIdx].id });
-                        updateCount++;
-                    } else {
-                        skipCount++;
-                    }
+                    orders[existIdx] = Object.assign({}, newOrder, { id: orders[existIdx].id });
+                    updateCount++;
                 } else {
                     orders.push(newOrder);
                     trackingMap[key] = orders.length - 1;
@@ -1781,9 +1765,8 @@
             closeImportModal();
             const parts = [];
             if (addCount > 0) parts.push(`新增 ${addCount} 条`);
-            if (updateCount > 0) parts.push(`更新 ${updateCount} 条`);
-            if (skipCount > 0) parts.push(`跳过 ${skipCount} 条（数据一致）`);
-            showToast(`【${project}】导入完成：${parts.join('，')}`);
+            if (updateCount > 0) parts.push(`覆盖 ${updateCount} 条`);
+            showToast(`【${project}】导入完成：${parts.join('，')}（共 ${importedParsed.length} 条）`);
             renderOrders();
             updateDashboard();
         }
@@ -1972,6 +1955,20 @@
             renderOrders();
             updateDashboard();
             showToast('数据已清空');
+        }
+
+        // 只清空运单数据（不清空项目配置）
+        async function clearOrdersOnly() {
+            if (orders.length === 0) { alert('当前没有运单数据'); return; }
+            if (!confirm(`⚠️ 确定要清空全部 ${orders.length} 条运单数据吗？\n\n此操作只删除运单，项目配置不受影响。`)) return;
+            orders = [];
+            selectedIds.clear();
+            await saveToCloud();
+            renderOrders();
+            updateDashboard();
+            document.getElementById('batchDeleteBtn').classList.add('hidden');
+            document.getElementById('selectedSummary').classList.add('hidden');
+            showToast('所有运单已清空，可以重新导入');
         }
 
         window.onclick = function(e) {
