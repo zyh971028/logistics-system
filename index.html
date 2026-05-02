@@ -2116,152 +2116,74 @@
             setTimeout(() => URL.revokeObjectURL(url), 3000);
         }
 
-        // ====== 导出完整运营报告 Excel（带所有图表图片） ======
+        // ====== 导出完整运营报告 Excel（使用 XLSX 库） ======
         async function exportMonthlyExcel() {
-            if (typeof ExcelJS === 'undefined') {
-                alert('ExcelJS 库未加载，请刷新页面后重试');
-                return;
-            }
             const d = calculateBizData();
             if (!d || !d.projects || d.projects.length === 0) {
                 alert('当前月份暂无经营数据');
                 return;
             }
 
-            // ---- 先切换到运营概览标签页，确保图表渲染 ----
-            const tabBtns = document.querySelectorAll('.tab-btn');
-            let dashboardTab = null;
-            tabBtns.forEach(btn => { if (btn.textContent.trim()==='运营概览') dashboardTab = btn; });
-            if (dashboardTab) dashboardTab.click();
-
-            showToast('正在渲染图表，请稍候...', 'info');
-            // 等图表渲染（Chart.js 异步渲染需要时间）
-            await new Promise(r => setTimeout(r, 1200));
-
-            // ---- 获取图表图片 ----
-            function getBase64(canvasId) {
-                const c = document.getElementById(canvasId);
-                if (!c) return null;
-                try { return c.toDataURL('image/png').replace(/^data:image\/png;base64,/, ''); }
-                catch(e) { return null; }
-            }
-            const b64Income   = getBase64('incomeChart');
-            const b64Cost     = getBase64('costChart');
-            const b64ProjProf = getBase64('projectProfitChart');
-            const b64ProjOrd  = getBase64('projectOrderChart');
-            const b64BizInc   = getBase64('bizIncomeChart');
-            const b64BizProf  = getBase64('bizProfitChart');
-            const b64BizTrips = getBase64('bizTripsChart');
-            const b64BizCost  = getBase64('bizCostChart');
-
-            // ---- 计算运营概览 KPI（从当前筛选数据） ----
-            const filterProject = document.getElementById('dashboardProjectFilter') ? document.getElementById('dashboardProjectFilter').value : '';
-            const kpiData = filterProject ? orders.filter(o => o.project === filterProject) : orders;
-            const kpiTotal = kpiData.length;
-            const kpiIncome = kpiData.reduce((s,o)=>s+parseFloat(o.income||0),0);
-            const kpiCost = kpiData.reduce((s,o)=>s+['driverFee','electricSubsidy','tollFee','rent','repairFee','laborCost'].reduce((a,k)=>a+parseFloat(o[k]||0),0),0);
-            const kpiProfit = kpiIncome - kpiCost;
-            const kpiRate = kpiIncome>0 ? (kpiProfit/kpiIncome*100).toFixed(1)+'%' : '0%';
-
-            // ---- 计算成本细项 ----
+            const pickerEl = document.getElementById('biz-month-picker');
+            const monthStr = pickerEl && pickerEl.value ? pickerEl.value : new Date().toISOString().slice(0,7);
             const t = d.total;
             const fmtN = (n, dec=0) => (n==null||isNaN(n)) ? 0 : parseFloat(parseFloat(n).toFixed(dec));
-            const fmtPct = n => (n==null||isNaN(n)) ? '' : ((n*100).toFixed(1)+'%');
-            const fmtY = n => (n==null||isNaN(n)) ? 0 : parseFloat(n);
 
-            // ---- 创建工作簿 ----
-            const wb = new ExcelJS.Workbook();
-            wb.creator = '恒冰物流运营管理系统';
-            wb.created = new Date();
+            showToast('正在生成Excel...', 'info');
 
-            // ====== 辅助函数 ======
-            function setCell(ws, addr, value, font, fill, align, border) {
-                const cell = ws.getCell(addr);
-                cell.value = value;
-                if (font)   cell.font   = font;
-                if (fill)   cell.fill   = fill;
-                if (align)  cell.alignment = align;
-                if (border) cell.border = border;
-                return cell;
-            }
-            function mkFont(bold=false, size=11, color='FF1E293B') { return { bold, size, color:{argb:color} }; }
-            function mkFill(hex) { return { type:'pattern', pattern:'solid', fgColor:{argb:'FF'+hex.replace('#','')} }; }
-            function mkBorder(clr='FFE2E8F0', style='thin') { const c={argb:'FF'+clr.replace('#','')}; return {top:{style,color:c},left:{style,color:c},bottom:{style,color:c},right:{style,color:c}}; }
-            function mkAlign(h='center',v='middle') { return { horizontal:h, vertical:v }; }
-
-            // ====== Sheet1：运营概览 ======
-            const wsDash = wb.addWorksheet('运营概览');
-            wsDash.columns = [{width:18},{width:18},{width:18},{width:18},{width:18}];
-
-            // 标题
-            wsDash.mergeCells('A1:E1');
-            wsDash.getCell('A1').value = '合同物流 · 运营概览';
-            wsDash.getCell('A1').font = mkFont(true, 16, 'FF1E293B');
-            wsDash.getCell('A1').alignment = mkAlign('center','middle');
-            wsDash.getRow(1).height = 36;
-
-            wsDash.mergeCells('A2:E2');
-            wsDash.getCell('A2').value = `筛选：${filterProject||'全部项目'}　|　生成时间：${new Date().toLocaleString('zh-CN')}`;
-            wsDash.getCell('A2').font = mkFont(false, 10, 'FF94A3B8');
-            wsDash.getCell('A2').alignment = mkAlign('center','middle');
-            wsDash.getRow(2).height = 20;
-
-            // KPI 卡片
-            const kpis = [
-                { label:'总运单数', value: kpiTotal+'条',  bg:'3B82F6' },
-                { label:'总收入',   value:'¥'+kpiIncome.toLocaleString(),  bg:'10B981' },
-                { label:'总成本',   value:'¥'+kpiCost.toLocaleString(),    bg:'F43F5E' },
-                { label:'总利润',   value:'¥'+kpiProfit.toLocaleString(), bg:'8B5CF6' },
-                { label:'利润率',   value: kpiRate,                         bg:'F59E0B' },
+            // Sheet1: 项目汇总
+            const projData = [
+                ['合同物流 · 月度项目经营汇总'],
+                ['统计周期：' + d.title],
+                [],
+                ['项目','类型','上月发车','当月发车','变化率','上月收入','当月收入','收入变化','上月成本','当月成本','毛利','毛利率','司机运费','电补','高速费']
             ];
-            const kpiCols = ['A','B','C','D','E'];
-            wsDash.addRow([]);
-            const kpiRowLabel = wsDash.addRow([]);
-            kpiRowLabel.height = 22;
-            const kpiRowVal = wsDash.addRow([]);
-            kpiRowVal.height = 40;
-            kpis.forEach((k,i) => {
-                const c = kpiCols[i];
-                const bg = 'FF'+k.bg;
-                setCell(wsDash, `${c}${kpiRowLabel.number}`, k.label,
-                    mkFont(true,11,'FF374151'), mkFill(k.bg+'22'), mkAlign('center','middle'), mkBorder(k.bg));
-                setCell(wsDash, `${c}${kpiRowVal.number}`, k.value,
-                    mkFont(true,18,'FF111827'), mkFill(k.bg+'22'), mkAlign('center','middle'), mkBorder(k.bg));
+            d.projects.forEach(p => {
+                projData.push([
+                    p.name, p.category,
+                    fmtN(p.last_trips), fmtN(p.cur_trips), ((p.trips_change_rate||0)*100).toFixed(1)+'%',
+                    p.last_income, p.cur_income, ((p.income_change_rate||0)*100).toFixed(1)+'%',
+                    p.last_cost, p.cur_cost, p.gross_profit, ((p.gross_margin||0)*100).toFixed(1)+'%',
+                    p.driver_fee, p.electricity_subsidy||0, p.highway_fee||0
+                ]);
+            });
+            projData.push([
+                '合计', '',
+                fmtN(t.last_trips), fmtN(t.cur_trips), '',
+                t.last_income, t.cur_income, '',
+                t.last_cost, t.cur_cost, t.gross_profit, ((t.gross_margin||0)*100).toFixed(1)+'%',
+                t.driver_fee, t.electricity_subsidy||0, t.highway_fee||0
+            ]);
+
+            // Sheet2: 运单明细
+            const filterOrders = orders.filter(o => (o.date||'').startsWith(monthStr));
+            const ordData = [
+                ['合同物流 · 运单明细'],
+                ['统计周期：' + d.title + '　共' + filterOrders.length + '条'],
+                [],
+                ['项目','运单号','日期','车牌','驾驶员','始发地','收入','司机运费','电补','高速费','车租','维修费','人员成本','利润','里程']
+            ];
+            filterOrders.forEach(o => {
+                ordData.push([
+                    o.project||'', o.trackingNo||'', o.date||'', o.plate||'', o.driver||'',
+                    o.origin||'', parseFloat(o.income||0), parseFloat(o.driverFee||0),
+                    parseFloat(o.electricSubsidy||0), parseFloat(o.tollFee||0), parseFloat(o.rent||0),
+                    parseFloat(o.repairFee||0), parseFloat(o.laborCost||0), parseFloat(o.profit||0),
+                    parseFloat(o.totalKm||0)
+                ]);
             });
 
-            // 图表区（先空出空间，再插图）
-            wsDash.addRow([]);
-            wsDash.addRow([]);
-            const chartStartRow1 = wsDash.rowCount + 1;
-            for(let i=0;i<14;i++) wsDash.addRow([]);
-            const chartStartRow2 = wsDash.rowCount + 1;
-            for(let i=0;i<14;i++) wsDash.addRow([]);
+            // 创建工作簿
+            const wb = XLSX.utils.book_new();
+            const ws1 = XLSX.utils.aoa_to_sheet(projData);
+            const ws2 = XLSX.utils.aoa_to_sheet(ordData);
+            XLSX.utils.book_append_sheet(wb, ws1, '项目汇总');
+            XLSX.utils.book_append_sheet(wb, ws2, '运单明细');
 
-            // 插图（宽430px 高240px）
-            function addChartImg(ws, b64, colIdx, startRow) {
-                if (!b64) return;
-                const imgId = wb.addImage({ base64, extension:'png' });
-                ws.addImage(imgId, { tl:{col:colIdx,row:startRow-1}, ext:{width:430,height:240} });
-            }
-            addChartImg(wsDash, b64Income,   0, chartStartRow1);
-            addChartImg(wsDash, b64Cost,     2, chartStartRow1);
-            addChartImg(wsDash, b64ProjProf, 0, chartStartRow2);
-            addChartImg(wsDash, b64ProjOrd, 2, chartStartRow2);
-
-            // ====== Sheet2：成本分析 ======
-            const wsCost = wb.addWorksheet('成本分析');
-            const costLabels = ['成本项目','金额（元）','占比'];
-            const costItems = [
-                { name:'司机运费', value: t.driver_fee||0 },
-                { name:'车租/折旧', value: t.car_group_cost||0 },
-                { name:'电补', value: t.electricity_subsidy||0 },
-                { name:'高速费', value: t.highway_fee||0 },
-                { name:'装卸费', value: t.loading_fee||0 },
-                { name:'平台服务费', value: t.platform_fee||0 },
-                { name:'人员成本', value: t.staff_cost||0 },
-                { name:'维修费', value: t.repair_fee||0 },
-            ];
-            const totalCost = t.cur_cost;
+            // 导出
+            XLSX.writeFile(wb, '恒冰月度经营报告_' + monthStr + '.xlsx');
+            showToast('Excel报告导出成功', 'ok');
+        }
 
             wsCost.mergeCells('A1:C1');
             wsCost.getCell('A1').value = `合同物流 · ${d.title} 成本分析`;
