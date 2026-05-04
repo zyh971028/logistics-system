@@ -2019,6 +2019,12 @@
                 return;
             }
 
+            // 确保切换到运营概览标签页和柱状图视图，以便图表正确渲染
+            showTab('dashboard');
+            toggleBizChart('chart');
+            // 等待图表渲染完成（Chart.js 异步渲染）
+            await new Promise(r => setTimeout(r, 1200));
+
             // 截取四张图表为 base64 图片
             function getChartImg(canvasId) {
                 const canvas = document.getElementById(canvasId);
