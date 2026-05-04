@@ -6,7 +6,7 @@
     <title>恒冰物流运营管理系统</title>
     <link rel="stylesheet" href="./tailwind.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script src="./exceljs.min.js"></script>
     <script src="./tcb.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -665,6 +665,9 @@
             await initCloud();
             await loadFromCloud();
         }
+
+        // 从云端加载数据
+        async function loadFromCloud() {
             setSyncStatus('ing', '同步中...');
             const localOrders = JSON.parse(localStorage.getItem('hengbing_orders') || '[]');
             // 从 localStorage 恢复同步状态
