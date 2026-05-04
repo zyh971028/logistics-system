@@ -2300,9 +2300,9 @@
             for(let i=0;i<14;i++) wsDash.addRow([]);
 
             // 插图（宽430px 高240px）
-            function addChartImg(ws, b64, colIdx, startRow) {
-                if (!b64) return;
-                const imgId = wb.addImage({ base64, extension:'png' });
+            function addChartImg(ws, imgBase64, colIdx, startRow) {
+                if (!imgBase64) return;
+                const imgId = wb.addImage({ base64: imgBase64, extension:'png' });
                 ws.addImage(imgId, { tl:{col:colIdx,row:startRow-1}, ext:{width:430,height:240} });
             }
             addChartImg(wsDash, b64Income,   0, chartStartRow1);
