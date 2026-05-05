@@ -1799,9 +1799,14 @@
                 </tr>
             `).join('');
 
+            // 区间页码分页
             let paginationHtml = '';
-            for (let i=1; i<=totalPages; i++) paginationHtml += 
-                `<button onclick="goPage(${i})" class="px-3 py-1 rounded text-sm ${i===currentPage?'bg-blue-600 text-white':'bg-gray-200'}">${i}</button>`;
+            if (totalPages > 0) {
+                for (let i=1; i<=totalPages; i++) {
+                    const start = (i-1)*pageSize+1, end = Math.min(i*pageSize, filtered.length);
+                    paginationHtml += `<button onclick="goPage(${i})" class="px-3 py-1 rounded text-sm ${i===currentPage?'bg-blue-600 text-white':'bg-gray-200'}">${start}-${end}</button>`;
+                }
+            }
             document.getElementById('pagination').innerHTML = paginationHtml || '<span class="text-gray-500 text-sm">暂无数据</span>';
             
             // 更新合计行
