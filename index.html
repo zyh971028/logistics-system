@@ -75,6 +75,12 @@
         .metric-checkbox-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; cursor: pointer; user-select: none; }
         .metric-checkbox-item:hover { background: #f3f4f6; }
         .metric-checkbox-item input[type=checkbox] { width: 15px; height: 15px; cursor: pointer; }
+        /* 车辆运营专属样式 */
+        #vehicleOpsTable tr td { padding: 8px 10px; }
+        #vehicleOpsTable tbody tr { transition: background-color 0.15s; }
+        #vehicleOpsPagination button { min-width: 32px; }
+        .badge-month { background: #dbeafe; color: #1d4ed; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+        .badge-trips { background: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 9999px; font-size: 12px; font-weight: 700; display: inline-block; min-width: 20px; text-align: center; }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -92,6 +98,9 @@
                 </a>
                 <a href="#" onclick="showTab('orders')" id="nav-orders" class="block py-2.5 px-4 rounded-lg mb-1 hover:bg-gray-800 text-sm">
                     <i class="fas fa-list mr-2"></i>运单汇总
+                </a>
+                <a href="#" onclick="showTab('vehicles')" id="nav-vehicles" class="block py-2.5 px-4 rounded-lg mb-1 hover:bg-gray-800 text-sm">
+                    <i class="fas fa-truck-moving mr-2"></i>车辆运营
                 </a>
                 <a href="#" onclick="showTab('admin')" id="nav-admin" class="block py-2.5 px-4 rounded-lg mb-1 hover:bg-gray-800 text-sm">
                     <i class="fas fa-cog mr-2"></i>管理员
@@ -386,6 +395,70 @@
                         <span class="text-sm ml-4">成本: <span id="selectedCost" class="font-semibold">0.00</span></span>
                         <span class="text-sm ml-4">利润: <span id="selectedProfit" class="font-semibold">0.00</span></span>
                     </div>
+                </div>
+            </div>
+
+            <!-- 车辆运营 -->
+            <div id="vehicles-section" class="p-5 hidden">
+                <div class="card">
+                    <!-- 搜索/筛选工具栏 -->
+                    <div class="p-3 border-b flex justify-between items-center flex-wrap gap-2">
+                        <div class="flex gap-3 items-center flex-wrap">
+                            <div class="flex items-center gap-1">
+                                <label class="text-xs text-gray-500 whitespace-nowrap">车牌号</label>
+                                <input type="text" id="vPlateFilter" placeholder="搜索车牌号" class="px-3 py-1.5 border rounded-lg w-28 text-sm" oninput="renderVehicleOps()">
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <label class="text-xs text-gray-500 whitespace-nowrap">月份</label>
+                                <input type="month" id="vMonthFilter" class="px-3 py-1.5 border rounded-lg text-sm" oninput="renderVehicleOps()">
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <label class="text-xs text-gray-500 whitespace-nowrap">项目</label>
+                                <select id="vProjectFilter" onchange="renderVehicleOps()" class="px-3 py-1.5 border rounded-lg text-sm min-w-[120px]">
+                                    <option value="">全部项目</option>
+                                </select>
+                            </div>
+                            <button onclick="clearVehicleFilters()" class="btn-secondary text-xs px-2 py-1"><i class="fas fa-eraser mr-1"></i>清空筛选</button>
+                            <button onclick="exportVehicleOps()" class="btn-success text-xs px-2 py-1"><i class="fas fa-file-excel mr-1"></i>导出Excel</button>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-gray-400">每页显示</span>
+                            <select id="vPageSize" onchange="vCurrentPage=1;renderVehicleOps()" class="px-2 py-1 border rounded text-sm">
+                                <option value="50">50条</option>
+                                <option value="100" selected>100条</option>
+                                <option value="200">200条</option>
+                                <option value="500">500条</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- 表格 -->
+                    <div class="table-container" style="max-height:68vh;">
+                        <table class="text-sm">
+                            <thead>
+                                <tr class="bg-gradient-to-r from-gray-800 to-gray-900 text-white">
+                                    <th class="text-center" style="width:50px;">序列</th>
+                                    <th style="width:90px;">月份</th>
+                                    <th>项目名称</th>
+                                    <th style="width:110px;">车牌号</th>
+                                    <th class="text-center" style="width:80px;">出勤趟次</th>
+                                    <th class="text-right" style="width:90px;">行驶总里程</th>
+                                    <th class="text-right" style="width:100px;">累计收入</th>
+                                    <th class="text-right" style="width:90px;">司机运费</th>
+                                    <th class="text-right" style="width:80px;">司机电补</th>
+                                    <th class="text-right" style="width:80px;">高速费</th>
+                                    <th class="text-right" style="width:80px;">高速费单价</th>
+                                    <th class="text-right" style="width:80px;">装卸费</th>
+                                    <th class="text-right" style="width:90px;">累计车租</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vehicleOpsTable"></tbody>
+                            <tfoot id="vehicleOpsTableFooter" class="bg-gray-50 font-semibold text-sm"></tfoot>
+                        </table>
+                    </div>
+                    <!-- 分页 -->
+                    <div id="vehicleOpsPagination" class="p-3 border-t flex justify-center items-center gap-1"></div>
+                    <!-- 数据统计 -->
+                    <div id="vehicleOpsStats" class="p-2 border-t bg-gray-50 text-xs text-gray-500 flex gap-4"></div>
                 </div>
             </div>
 
@@ -882,16 +955,17 @@
         });
 
         function showTab(tab) {
-            ['dashboard','orders','admin'].forEach(t => {
+            ['dashboard','orders','vehicles','admin'].forEach(t => {
                 document.getElementById(t+'-section').classList.add('hidden');
                 document.getElementById('nav-'+t).classList.remove('bg-blue-600');
             });
             document.getElementById(tab+'-section').classList.remove('hidden');
             document.getElementById('nav-'+tab).classList.add('bg-blue-600');
             document.getElementById('page-title').textContent = 
-                tab==='dashboard'?'运营概览':tab==='orders'?'运单汇总':'管理员';
+                tab==='dashboard'?'运营概览':tab==='orders'?'运单汇总':tab==='vehicles'?'车辆运营':'管理员';
             if (tab==='dashboard') { updateDashboard(); renderBizAnalysis(); }
             if (tab==='orders') renderOrders();
+            if (tab==='vehicles') { updateVehicleProjectFilter(); renderVehicleOps(); }
             if (tab==='admin') { renderProjects(); loadSystemName(); }
         }
 
@@ -1585,6 +1659,252 @@
         function goPage(page) { currentPage=page; renderOrders(); }
         function searchOrders() { currentPage=1; renderOrders(); }
         function filterOrders() { currentPage=1; renderOrders(); updateDashboard(); }
+
+        // ====== 车辆运营模块 ======
+        let vCurrentPage = 1;
+        let vCachedData = []; // 缓存计算结果，避免重复计算
+
+        // 更新车辆运营页面的项目下拉列表
+        function updateVehicleProjectFilter() {
+            const sel = document.getElementById('vProjectFilter');
+            if (!sel) return;
+            const val = sel.value;
+            sel.innerHTML = '<option value="">全部项目</option>' +
+                projects.map(p => `<option value="${p}">${p}</option>`).join('');
+            sel.value = val;
+        }
+
+        // 清空车辆运营筛选条件
+        function clearVehicleFilters() {
+            document.getElementById('vPlateFilter').value = '';
+            document.getElementById('vMonthFilter').value = '';
+            document.getElementById('vProjectFilter').value = '';
+            vCurrentPage = 1;
+            renderVehicleOps();
+        }
+
+        // 计算车辆运营数据：按（车牌号 + 月份 + 项目）聚合
+        function calcVehicleOpsData() {
+            const map = {};
+            orders.forEach(o => {
+                if (!o.plate) return;
+                const plate = o.plate.toString().trim().toUpperCase();
+                if (!plate) return;
+                // 月份从日期提取
+                let month = '';
+                if (o.date) {
+                    const m = o.date.toString().match(/^(\d{4}-\d{2})/);
+                    if (m) month = m[1];
+                }
+                if (!month) return;
+                const proj = o.project || '未知项目';
+                const key = `${plate}|${month}|${proj}`;
+                if (!map[key]) {
+                    map[key] = { plate, month, project: proj, trips: 0, totalKm: 0, income: 0,
+                        driverFee: 0, electricSubsidy: 0, tollFee: 0, loadingFee: 0, rent: 0 };
+                }
+                const rec = map[key];
+                rec.totalKm += parseFloat(o.totalKm) || 0;
+                rec.income += parseFloat(o.income) || 0;
+                rec.driverFee += parseFloat(o.driverFee) || 0;
+                rec.electricSubsidy += parseFloat(o.electricSubsidy) || 0;
+                rec.tollFee += parseFloat(o.tollFee) || 0;
+                rec.rent += parseFloat(o.rent) || 0;
+                // 装卸费从利润公式推导：利润 = 收入 - 司机运费 - 电补 - 高速费 - 装卸费 - 车租 - 维修费 - 人员成本
+                // 即：装卸费 = 收入 - 司机运费 - 电补 - 高速费 - 车租 - 维修费 - 人员成本 - 利润
+                const profit = parseFloat(o.profit) || 0;
+                const repairFee = parseFloat(o.repairFee) || 0;
+                const laborCost = parseFloat(o.laborCost) || 0;
+                const income = parseFloat(o.income) || 0;
+                const calcLoading = income - (parseFloat(o.driverFee)||0) - (parseFloat(o.electricSubsidy)||0)
+                    - (parseFloat(o.tollFee)||0) - (parseFloat(o.rent)||0) - repairFee - laborCost - profit;
+                if (calcLoading !== 0) rec.loadingFee += calcLoading;
+                // 出勤趟次：有运费收入的算1趟
+                if ((parseFloat(o.income) || 0) > 0) rec.trips += 1;
+            });
+            // 转数组，按车牌号→月份→项目排序
+            let arr = Object.values(map);
+            arr.sort((a, b) => a.plate.localeCompare(b.plate) || a.month.localeCompare(b.month) || a.project.localeCompare(b.project));
+            return arr;
+        }
+
+        // 渲染车辆运营表格
+        function renderVehicleOps() {
+            // 重新计算数据
+            vCachedData = calcVehicleOpsData();
+
+            // 应用筛选
+            const plateQ = (document.getElementById('vPlateFilter').value || '').toUpperCase().trim();
+            const monthQ = document.getElementById('vMonthFilter').value || '';
+            const projQ = document.getElementById('vProjectFilter').value || '';
+
+            let filtered = vCachedData.filter(r => {
+                const matchPlate = !plateQ || r.plate.includes(plateQ);
+                const matchMonth = !monthQ || r.month === monthQ;
+                const matchProj = !projQ || r.project === projQ;
+                return matchPlate && matchMonth && matchProj;
+            });
+
+            const pageSize = parseInt(document.getElementById('vPageSize').value) || 100;
+            const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+            if (vCurrentPage > totalPages) vCurrentPage = totalPages;
+            const start = (vCurrentPage - 1) * pageSize;
+            const pageData = filtered.slice(start, start + pageSize);
+
+            // 渲染表格行
+            const tbody = document.getElementById('vehicleOpsTable');
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="13" class="text-center text-gray-400 py-8"><i class="fas fa-inbox mr-2"></i>暂无车辆运营数据</td></tr>';
+            } else {
+                tbody.innerHTML = pageData.map((r, i) => {
+                    const tollUnitPrice = r.totalKm > 0 ? (r.tollFee / r.totalKm) : 0;
+                    const rowClass = i % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                    return `<tr class="${rowClass} hover:bg-blue-50 transition-colors">
+                        <td class="text-center text-gray-400">${start + i + 1}</td>
+                        <td><span class="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">${r.month}</span></td>
+                        <td><span class="text-gray-700">${r.project}</span></td>
+                        <td><span class="font-semibold text-gray-800">${r.plate}</span></td>
+                        <td class="text-center"><span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 text-sm font-bold">${r.trips}</span></td>
+                        <td class="text-right number text-gray-700">${r.totalKm.toFixed(1)}</td>
+                        <td class="text-right number font-semibold text-emerald-600">${r.income.toFixed(2)}</td>
+                        <td class="text-right number text-gray-700">${r.driverFee.toFixed(2)}</td>
+                        <td class="text-right number text-gray-700">${r.electricSubsidy.toFixed(2)}</td>
+                        <td class="text-right number text-gray-700">${r.tollFee.toFixed(2)}</td>
+                        <td class="text-right number text-orange-600">${tollUnitPrice.toFixed(3)}</td>
+                        <td class="text-right number text-gray-700">${r.loadingFee.toFixed(2)}</td>
+                        <td class="text-right number text-gray-700">${r.rent.toFixed(2)}</td>
+                    </tr>`;
+                }).join('');
+            }
+
+            // 渲染合计行
+            const sumRow = { totalKm:0, income:0, driverFee:0, electricSubsidy:0, tollFee:0, loadingFee:0, rent:0, trips:0 };
+            filtered.forEach(r => {
+                sumRow.totalKm += r.totalKm;
+                sumRow.income += r.income;
+                sumRow.driverFee += r.driverFee;
+                sumRow.electricSubsidy += r.electricSubsidy;
+                sumRow.tollFee += r.tollFee;
+                sumRow.loadingFee += r.loadingFee;
+                sumRow.rent += r.rent;
+                sumRow.trips += r.trips;
+            });
+            const sumTollUnit = sumRow.totalKm > 0 ? (sumRow.tollFee / sumRow.totalKm) : 0;
+            document.getElementById('vehicleOpsTableFooter').innerHTML =
+                `<tr class="border-t-2 border-gray-300">
+                    <td colspan="4" class="text-right font-semibold text-gray-600 px-4">合计 (${filtered.length}条)</td>
+                    <td class="text-center font-bold text-emerald-700">${sumRow.trips}</td>
+                    <td class="text-right number font-semibold">${sumRow.totalKm.toFixed(1)}</td>
+                    <td class="text-right number font-bold text-emerald-600">${sumRow.income.toFixed(2)}</td>
+                    <td class="text-right number font-semibold">${sumRow.driverFee.toFixed(2)}</td>
+                    <td class="text-right number font-semibold">${sumRow.electricSubsidy.toFixed(2)}</td>
+                    <td class="text-right number font-semibold">${sumRow.tollFee.toFixed(2)}</td>
+                    <td class="text-right number font-semibold text-orange-600">${sumTollUnit.toFixed(3)}</td>
+                    <td class="text-right number font-semibold">${sumRow.loadingFee.toFixed(2)}</td>
+                    <td class="text-right number font-semibold">${sumRow.rent.toFixed(2)}</td>
+                </tr>`;
+
+            // 渲染分页（带页码范围选择）
+            renderVehiclePagination(filtered.length, pageSize, totalPages);
+
+            // 渲染统计信息
+            document.getElementById('vehicleOpsStats').innerHTML =
+                `<span><i class="fas fa-truck mr-1"></i>共 ${vCachedData.length} 条记录</span>
+                 <span><i class="fas fa-filter mr-1"></i>筛选后 ${filtered.length} 条</span>
+                 <span><i class="fas fa-car mr-1"></i>${[...new Set(filtered.map(r=>r.plate))].length} 辆车</span>`;
+        }
+
+        // 渲染车辆运营分页（支持页码范围选择，如 1-100, 101-200）
+        function renderVehiclePagination(totalItems, pageSize, totalPages) {
+            const container = document.getElementById('vehicleOpsPagination');
+            if (totalPages <= 1) {
+                container.innerHTML = `<span class="text-gray-400 text-xs">共 ${totalItems} 条记录</span>`;
+                return;
+            }
+            let html = '';
+            // 上一页
+            html += `<button onclick="vGoPage(${vCurrentPage-1})" class="px-2 py-1 rounded text-xs ${vCurrentPage===1?'bg-gray-100 text-gray-300 cursor-not-allowed':'bg-white border hover:bg-gray-50'}" ${vCurrentPage===1?'disabled':''}><i class="fas fa-chevron-left"></i></button>`;
+
+            // 页码范围选择器
+            html += `<div class="flex items-center gap-1 mx-2">`;
+            for (let i = 1; i <= totalPages; i++) {
+                // 如果总页数太多，显示省略号
+                if (totalPages > 10) {
+                    if (i > 3 && i < totalPages - 2 && Math.abs(i - vCurrentPage) > 2) {
+                        if (i === 4 || i === totalPages - 3) html += `<span class="text-gray-400 px-1">...</span>`;
+                        continue;
+                    }
+                }
+                const isActive = i === vCurrentPage;
+                const rangeStart = (i - 1) * pageSize + 1;
+                const rangeEnd = Math.min(i * pageSize, totalItems);
+                html += `<button onclick="vGoPage(${i})" class="px-2.5 py-1 rounded text-xs font-medium transition-all ${isActive ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border hover:bg-gray-50 text-gray-600'}" title="${rangeStart}-${rangeEnd}">${i}</button>`;
+            }
+            html += `</div>`;
+
+            // 下一页
+            html += `<button onclick="vGoPage(${vCurrentPage+1})" class="px-2 py-1 rounded text-xs ${vCurrentPage===totalPages?'bg-gray-100 text-gray-300 cursor-not-allowed':'bg-white border hover:bg-gray-50'}" ${vCurrentPage===totalPages?'disabled':''}><i class="fas fa-chevron-right"></i></button>`;
+
+            // 页码范围快捷信息
+            const curStart = (vCurrentPage - 1) * pageSize + 1;
+            const curEnd = Math.min(vCurrentPage * pageSize, totalItems);
+            html += `<span class="text-xs text-gray-400 ml-2">显示 ${curStart}-${curEnd} / ${totalItems}</span>`;
+
+            container.innerHTML = html;
+        }
+
+        function vGoPage(page) {
+            const pageSize = parseInt(document.getElementById('vPageSize').value) || 100;
+            const totalPages = Math.max(1, Math.ceil(vCachedData.length / pageSize));
+            if (page < 1 || page > totalPages) return;
+            vCurrentPage = page;
+            renderVehicleOps();
+        }
+
+        // 导出车辆运营数据为Excel
+        function exportVehicleOps() {
+            if (vCachedData.length === 0) {
+                showToast('暂无数据可导出', 'warn');
+                return;
+            }
+            // 导出当前筛选后的数据
+            const plateQ = (document.getElementById('vPlateFilter').value || '').toUpperCase().trim();
+            const monthQ = document.getElementById('vMonthFilter').value || '';
+            const projQ = document.getElementById('vProjectFilter').value || '';
+            const filtered = vCachedData.filter(r => {
+                return (!plateQ || r.plate.includes(plateQ)) && (!monthQ || r.month === monthQ) && (!projQ || r.project === projQ);
+            });
+            if (filtered.length === 0) {
+                showToast('筛选后无数据可导出', 'warn');
+                return;
+            }
+            const exportData = filtered.map((r, i) => ({
+                '序列': i + 1,
+                '月份': r.month,
+                '项目名称': r.project,
+                '车牌号': r.plate,
+                '出勤趟次': r.trips,
+                '行驶总里程': parseFloat(r.totalKm.toFixed(1)),
+                '累计收入': parseFloat(r.income.toFixed(2)),
+                '司机运费': parseFloat(r.driverFee.toFixed(2)),
+                '司机电补': parseFloat(r.electricSubsidy.toFixed(2)),
+                '高速费': parseFloat(r.tollFee.toFixed(2)),
+                '高速费单价': parseFloat((r.totalKm > 0 ? (r.tollFee / r.totalKm) : 0).toFixed(3)),
+                '装卸费': parseFloat(r.loadingFee.toFixed(2)),
+                '累计车租': parseFloat(r.rent.toFixed(2))
+            }));
+            const ws = XLXS.utils.json_to_sheet(exportData);
+            // 设置列宽
+            ws['!cols'] = [
+                {wch:6},{wch:10},{wch:16},{wch:12},{wch:10},{wch:12},{wch:12},
+                {wch:10},{wch:10},{wch:10},{wch:12},{wch:10},{wch:10}
+            ];
+            const wb = XLXS.utils.book_new();
+            XLXS.utils.book_append_sheet(wb, ws, '车辆运营');
+            XLXS.writeFile(wb, `车辆运营_${new Date().toISOString().slice(0,10)}.xlsx`);
+            showToast(`成功导出 ${filtered.length} 条记录`);
+        }
+
 
         // 更新合计行
         function updateSummaryRow(data) {
