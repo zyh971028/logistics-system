@@ -397,17 +397,17 @@
                                     <label class="text-xs text-gray-500">选择月份：</label>
                                     <input type="month" id="biz-month-picker" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-700 focus:outline-none focus:border-indigo-400" onchange="renderBizAnalysis()">
                                     <button onclick="document.getElementById('biz-month-picker').value='';renderBizAnalysis()" class="text-xs px-2 py-1 rounded border border-gray-300 text-gray-500 bg-white hover:bg-gray-50">当月</button>
-                                    <button onclick="toggleBizChart('bar')" id="biz-btn-bar" class="text-xs px-3 py-1 rounded border border-indigo-400 text-indigo-600 bg-indigo-50 font-medium">柱状图</button>
-                                    <button onclick="toggleBizChart('table')" id="biz-btn-table" class="text-xs px-3 py-1 rounded border border-gray-300 text-gray-500 bg-white">数据表</button>
+                                    <button onclick="toggleBizChart('bar')" id="biz-btn-bar" class="text-xs px-3 py-1 rounded border border-gray-300 text-gray-500 bg-white">柱状图</button>
+                                    <button onclick="toggleBizChart('table')" id="biz-btn-table" class="text-xs px-3 py-1 rounded border border-indigo-400 text-indigo-600 bg-indigo-50 font-medium">数据表</button>
                                 </div>
                             </div>
-                            <div id="biz-chart-view" class="grid grid-cols-2 gap-4 mb-4">
+                            <div id="biz-chart-view" class="grid grid-cols-2 gap-4 mb-4 hidden">
                                 <div class="card p-4"><h4 class="text-xs text-gray-500 mb-2">各项目收入 vs 支出（元）</h4><canvas id="bizIncomeChart" height="220"></canvas></div>
                                 <div class="card p-4"><h4 class="text-xs text-gray-500 mb-2">各项目毛利（元）</h4><canvas id="bizProfitChart" height="220"></canvas></div>
                                 <div class="card p-4"><h4 class="text-xs text-gray-500 mb-2">各项目发车次（上月 vs 当月）</h4><canvas id="bizTripsChart" height="220"></canvas></div>
                                 <div class="card p-4"><h4 class="text-xs text-gray-500 mb-2">成本结构占比（各项目）</h4><canvas id="bizCostChart" height="220"></canvas></div>
                             </div>
-                            <div id="biz-table-view" class="card hidden">
+                            <div id="biz-table-view" class="card">
                                 <div class="overflow-x-auto">
                                     <table class="text-xs" id="bizDataTable">
                                         <thead>
