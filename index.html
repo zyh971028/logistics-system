@@ -154,35 +154,35 @@
                             <div class="card p-4 bg-gradient-to-br from-blue-50 to-white border-l-4 border-blue-500">
                                 <div class="flex items-center justify-between mb-2">
                                     <span class="text-gray-500 text-xs">总运单数</span>
-                                    <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><i class="fas fa-file-invoice text-blue-500 text-sm"></i></div>
+                                    <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center"><i class="fas fa-file-invoice text-blue-500"></i></div>
                                 </div>
                                 <p id="total-orders" class="text-2xl font-bold text-gray-800">0</p>
                             </div>
                             <div class="card p-4 bg-gradient-to-br from-emerald-50 to-white border-l-4 border-emerald-500">
                                 <div class="flex items-center justify-between mb-2">
                                     <span class="text-gray-500 text-xs">总收入</span>
-                                    <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center"><i class="fas fa-arrow-trend-up text-emerald-500 text-sm"></i></div>
+                                    <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center"><i class="fas fa-sack-dollar text-emerald-500"></i></div>
                                 </div>
-                                <p id="total-income" class="text-xl font-bold text-emerald-600 number">0</p>
+                                <p id="total-income" class="text-2xl font-bold text-emerald-600 number">0</p>
                             </div>
                             <div class="card p-4 bg-gradient-to-br from-rose-50 to-white border-l-4 border-rose-500">
                                 <div class="flex items-center justify-between mb-2">
                                     <span class="text-gray-500 text-xs">总成本</span>
-                                    <div class="w-8 h-8 rounded-full bg-rose-100 flex items-center justify-center"><i class="fas fa-arrow-trend-down text-rose-500 text-sm"></i></div>
+                                    <div class="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center"><i class="fas fa-wallet text-rose-500"></i></div>
                                 </div>
-                                <p id="total-cost" class="text-xl font-bold text-rose-600 number">0</p>
+                                <p id="total-cost" class="text-2xl font-bold text-rose-600 number">0</p>
                             </div>
                             <div class="card p-4 bg-gradient-to-br from-violet-50 to-white border-l-4 border-violet-500">
                                 <div class="flex items-center justify-between mb-2">
                                     <span class="text-gray-500 text-xs">总利润</span>
-                                    <div class="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center"><i class="fas fa-coins text-violet-500 text-sm"></i></div>
+                                    <div class="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center"><i class="fas fa-coins text-violet-500"></i></div>
                                 </div>
-                                <p id="total-profit" class="text-xl font-bold text-violet-600 number">0</p>
+                                <p id="total-profit" class="text-2xl font-bold text-violet-600 number">0</p>
                             </div>
                             <div class="card p-4 bg-gradient-to-br from-amber-50 to-white border-l-4 border-amber-500">
                                 <div class="flex items-center justify-between mb-2">
                                     <span class="text-gray-500 text-xs">利润率</span>
-                                    <div class="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center"><i class="fas fa-percent text-amber-500 text-sm"></i></div>
+                                    <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center"><i class="fas fa-chart-pie text-amber-500"></i></div>
                                 </div>
                                 <p id="profit-rate" class="text-2xl font-bold text-amber-600">0%</p>
                             </div>
@@ -449,6 +449,7 @@
                                     <th class="text-right" style="width:75px;">高速费</th>
                                     <th class="text-right" style="width:80px;">高速费单价</th>
                                     <th class="text-right" style="width:75px;">装卸费</th>
+                                    <th class="text-right" style="width:85px;">平台服务费</th>
                                     <th class="text-right" style="width:85px;">累计车租</th>
                                     <th class="text-right" style="width:90px;">利润</th>
                                 </tr>
@@ -1050,6 +1051,27 @@
             // 获取所有项目列表（从运单中提取）
             const allProjects = [...new Set(orders.map(o => o.project).filter(Boolean))];
             
+            // 从车辆运营数据中获取装卸费和平台服务费（按项目+月份汇总）
+            const vehicleOpsData = calcVehicleOpsData();
+            const curMonthStr = `${year}-${String(month).padStart(2,'0')}`;
+            const lastMonthStr = `${lastMonthYear}-${String(lastMonth).padStart(2,'0')}`;
+            
+            // 按项目汇总当月车辆运营数据
+            const curVehicleOpsByProject = {};
+            const lastVehicleOpsByProject = {};
+            vehicleOpsData.forEach(v => {
+                if (v.month === curMonthStr) {
+                    if (!curVehicleOpsByProject[v.project]) curVehicleOpsByProject[v.project] = { loadingFee: 0, platformFee: 0 };
+                    curVehicleOpsByProject[v.project].loadingFee += v.loadingFee || 0;
+                    curVehicleOpsByProject[v.project].platformFee += v.platformFee || 0;
+                }
+                if (v.month === lastMonthStr) {
+                    if (!lastVehicleOpsByProject[v.project]) lastVehicleOpsByProject[v.project] = { loadingFee: 0, platformFee: 0 };
+                    lastVehicleOpsByProject[v.project].loadingFee += v.loadingFee || 0;
+                    lastVehicleOpsByProject[v.project].platformFee += v.platformFee || 0;
+                }
+            });
+            
             // 计算每个项目的数据
             const projects = allProjects.map(projectName => {
                 const category = getProjectCategory(projectName) || '常温项目';
@@ -1080,10 +1102,9 @@
                 const last_income = lastOrders.reduce((s, o) => s + parseFloat(o.income || 0), 0);
                 const income_change_rate = last_income > 0 ? (cur_income - last_income) / last_income : (cur_income > 0 ? 1 : 0);
                 
-                // 计算成本
-                const calcCost = (orderList) => {
-                    // 平台服务费比例：按项目名称确定
-                    const platformRate = getPlatformRate(projectName);
+                // 计算成本（从车辆运营数据获取装卸费和平台服务费）
+                const calcCost = (orderList, vehicleOpsMap) => {
+                    const vData = vehicleOpsMap[projectName] || { loadingFee: 0, platformFee: 0 };
                     return orderList.reduce((s, o) => {
                         const df = parseFloat(o.driverFee || 0);
                         const es = parseFloat(o.electricSubsidy || 0);
@@ -1091,57 +1112,25 @@
                         const rt = parseFloat(o.rent || 0);
                         const rp = parseFloat(o.repairFee || 0);
                         const lc = parseFloat(o.laborCost || 0);
-                        // 装卸费从利润公式推导
-                        const inc = parseFloat(o.income || 0);
-                        const pft = parseFloat(o.profit || 0);
-                        const loadingFee = inc - df - es - tf - rt - rp - lc - pft;
-                        // 平台服务费 = (司机运费 + 电补 + 装卸费) * 比例
-                        const platformFee = (df + es + (loadingFee > 0 ? loadingFee : 0)) * platformRate;
-                        return s + df + es + tf + rt + rp + lc + loadingFee + platformFee;
-                    }, 0);
+                        return s + df + es + tf + rt + rp + lc;
+                    }, 0) + vData.loadingFee + vData.platformFee;
                 };
                 
-                const cur_cost = calcCost(curOrders);
-                const last_cost = calcCost(lastOrders);
+                const cur_cost = calcCost(curOrders, curVehicleOpsByProject);
+                const last_cost = calcCost(lastOrders, lastVehicleOpsByProject);
                 const cost_change_rate = last_cost > 0 ? (cur_cost - last_cost) / last_cost : (cur_cost > 0 ? 1 : 0);
                 
                 // 毛利
                 const gross_profit = cur_income - cur_cost;
                 const gross_margin = cur_income > 0 ? gross_profit / cur_income : 0;
                 
-                // 成本细项（当月）
+                // 成本细项（当月）- 从车辆运营数据获取装卸费和平台服务费
                 const driver_fee = curOrders.reduce((s, o) => s + parseFloat(o.driverFee || 0), 0);
                 const car_group_cost = curOrders.reduce((s, o) => s + parseFloat(o.rent || 0), 0);
                 const electricity_subsidy = curOrders.reduce((s, o) => s + parseFloat(o.electricSubsidy || 0), 0);
                 const highway_fee = curOrders.reduce((s, o) => s + parseFloat(o.tollFee || 0), 0);
-                // 装卸费从利润公式反推：利润 = 收入 - 司机运费 - 电补 - 高速费 - 车租 - 维修费 - 人员成本 - 装卸费
-                const loading_fee = curOrders.reduce((s, o) => {
-                    const inc = parseFloat(o.income || 0);
-                    const df = parseFloat(o.driverFee || 0);
-                    const es = parseFloat(o.electricSubsidy || 0);
-                    const tf = parseFloat(o.tollFee || 0);
-                    const rt = parseFloat(o.rent || 0);
-                    const rp = parseFloat(o.repairFee || 0);
-                    const lc = parseFloat(o.laborCost || 0);
-                    const pft = parseFloat(o.profit || 0);
-                    const lf = inc - df - es - tf - rt - rp - lc - pft;
-                    return s + lf;
-                }, 0);
-                // 平台服务费 = (司机运费 + 电补 + 装卸费) * 比例
-                const platformRate = getPlatformRate(projectName);
-                const loading_fee_positive = curOrders.reduce((s, o) => {
-                    const inc = parseFloat(o.income || 0);
-                    const df = parseFloat(o.driverFee || 0);
-                    const es = parseFloat(o.electricSubsidy || 0);
-                    const tf = parseFloat(o.tollFee || 0);
-                    const rt = parseFloat(o.rent || 0);
-                    const rp = parseFloat(o.repairFee || 0);
-                    const lc = parseFloat(o.laborCost || 0);
-                    const pft = parseFloat(o.profit || 0);
-                    const lf = inc - df - es - tf - rt - rp - lc - pft;
-                    return s + (lf > 0 ? lf : 0);
-                }, 0);
-                const platform_fee = (driver_fee + electricity_subsidy + loading_fee_positive) * platformRate;
+                const loading_fee = (curVehicleOpsByProject[projectName] || { loadingFee: 0 }).loadingFee;
+                const platform_fee = (curVehicleOpsByProject[projectName] || { platformFee: 0 }).platformFee;
                 const repair_fee = curOrders.reduce((s, o) => s + parseFloat(o.repairFee || 0), 0);
                 const staff_cost = curOrders.reduce((s, o) => s + parseFloat(o.laborCost || 0), 0);
                 
@@ -1759,7 +1748,7 @@
                 const key = `${plate}|${month}|${proj}`;
                 if (!map[key]) {
                     map[key] = { plate, month, project: proj, trips: 0, totalKm: 0, income: 0,
-                        driverFee: 0, electricSubsidy: 0, tollFee: 0, loadingFee: 0, rent: 0 };
+                        driverFee: 0, electricSubsidy: 0, tollFee: 0, loadingFee: 0, rent: 0, platformFee: 0 };
                 }
                 const rec = map[key];
                 rec.totalKm += parseFloat(o.totalKm) || 0;
@@ -1777,6 +1766,10 @@
                 const calcLoading = income - (parseFloat(o.driverFee)||0) - (parseFloat(o.electricSubsidy)||0)
                     - (parseFloat(o.tollFee)||0) - (parseFloat(o.rent)||0) - repairFee - laborCost - profit;
                 if (calcLoading !== 0) rec.loadingFee += calcLoading;
+                // 平台服务费 = (司机运费 + 电补 + 装卸费) * 比例
+                const platformRate = getPlatformRate(proj);
+                const loadingFeePositive = calcLoading > 0 ? calcLoading : 0;
+                rec.platformFee += (parseFloat(o.driverFee||0) + parseFloat(o.electricSubsidy||0) + loadingFeePositive) * platformRate;
                 // 出勤趟次：有运费收入的算1趟
                 if ((parseFloat(o.income) || 0) > 0) rec.trips += 1;
             });
@@ -1816,7 +1809,7 @@
             } else {
                 tbody.innerHTML = pageData.map((r, i) => {
                     const tollUnitPrice = r.totalKm > 0 ? (r.tollFee / r.totalKm) : 0;
-                    const profitVal = r.income - r.driverFee - r.electricSubsidy - r.tollFee - r.loadingFee - r.rent;
+                    const profitVal = r.income - r.driverFee - r.electricSubsidy - r.tollFee - r.loadingFee - r.platformFee - r.rent;
                     const rowClass = i % 2 === 0 ? 'bg-white' : 'bg-gray-50';
                     return `<tr class="${rowClass} hover:bg-blue-50 transition-colors">
                         <td class="text-center text-gray-400">${start + i + 1}</td>
@@ -1831,6 +1824,7 @@
                         <td class="text-right number text-gray-700">${r.tollFee.toFixed(2)}</td>
                         <td class="text-right number text-orange-600">${tollUnitPrice.toFixed(3)}</td>
                         <td class="text-right number text-gray-700">${r.loadingFee.toFixed(2)}</td>
+                        <td class="text-right number text-purple-600">${r.platformFee.toFixed(2)}</td>
                         <td class="text-right number text-gray-700">${r.rent.toFixed(2)}</td>
                         <td class="text-right number font-semibold ${profitVal >= 0 ? 'text-emerald-600' : 'text-red-600'}">${profitVal.toFixed(2)}</td>
                     </tr>`;
@@ -1838,7 +1832,7 @@
             }
 
             // 渲染合计行
-            const sumRow = { totalKm:0, income:0, driverFee:0, electricSubsidy:0, tollFee:0, loadingFee:0, rent:0, trips:0, profit:0 };
+            const sumRow = { totalKm:0, income:0, driverFee:0, electricSubsidy:0, tollFee:0, loadingFee:0, platformFee:0, rent:0, trips:0, profit:0 };
             filtered.forEach(r => {
                 sumRow.totalKm += r.totalKm;
                 sumRow.income += r.income;
@@ -1846,9 +1840,10 @@
                 sumRow.electricSubsidy += r.electricSubsidy;
                 sumRow.tollFee += r.tollFee;
                 sumRow.loadingFee += r.loadingFee;
+                sumRow.platformFee += r.platformFee;
                 sumRow.rent += r.rent;
                 sumRow.trips += r.trips;
-                sumRow.profit += (r.income - r.driverFee - r.electricSubsidy - r.tollFee - r.loadingFee - r.rent);
+                sumRow.profit += (r.income - r.driverFee - r.electricSubsidy - r.tollFee - r.loadingFee - r.platformFee - r.rent);
             });
             const sumTollUnit = sumRow.totalKm > 0 ? (sumRow.tollFee / sumRow.totalKm) : 0;
             document.getElementById('vehicleOpsTableFooter').innerHTML =
@@ -1862,6 +1857,7 @@
                     <td class="text-right number font-semibold">${sumRow.tollFee.toFixed(2)}</td>
                     <td class="text-right number font-semibold text-orange-600">${sumTollUnit.toFixed(3)}</td>
                     <td class="text-right number font-semibold">${sumRow.loadingFee.toFixed(2)}</td>
+                    <td class="text-right number font-semibold text-purple-600">${sumRow.platformFee.toFixed(2)}</td>
                     <td class="text-right number font-semibold">${sumRow.rent.toFixed(2)}</td>
                     <td class="text-right number font-bold ${sumRow.profit >= 0 ? 'text-emerald-600' : 'text-red-600'}">${sumRow.profit.toFixed(2)}</td>
                 </tr>`;
@@ -1887,7 +1883,7 @@
             // 上一页
             html += `<button onclick="vGoPage(${vCurrentPage-1})" class="px-2 py-1 rounded text-xs ${vCurrentPage===1?'bg-gray-100 text-gray-300 cursor-not-allowed':'bg-white border hover:bg-gray-50'}" ${vCurrentPage===1?'disabled':''}><i class="fas fa-chevron-left"></i></button>`;
 
-            // 页码范围选择器
+            // 页码范围选择器 - 显示范围如 1-100, 101-200
             html += `<div class="flex items-center gap-1 mx-2">`;
             for (let i = 1; i <= totalPages; i++) {
                 // 如果总页数太多，显示省略号
@@ -1900,7 +1896,8 @@
                 const isActive = i === vCurrentPage;
                 const rangeStart = (i - 1) * pageSize + 1;
                 const rangeEnd = Math.min(i * pageSize, totalItems);
-                html += `<button onclick="vGoPage(${i})" class="px-2.5 py-1 rounded text-xs font-medium transition-all ${isActive ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border hover:bg-gray-50 text-gray-600'}" title="${rangeStart}-${rangeEnd}">${i}</button>`;
+                const rangeText = `${rangeStart}-${rangeEnd}`;
+                html += `<button onclick="vGoPage(${i})" class="px-2 py-1 rounded text-xs font-medium transition-all ${isActive ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border hover:bg-gray-50 text-gray-600'}" title="第${i}页">${rangeText}</button>`;
             }
             html += `</div>`;
 
