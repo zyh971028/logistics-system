@@ -1128,7 +1128,7 @@
             const d = calculateBizData();
             document.getElementById('biz-analysis-title').textContent = d.title;
             renderBizTable(d);
-            renderBizCharts(d);
+            // 图表默认不渲染，点击"柱状图"按钮时再调用 renderBizCharts(d)
         }
 
         // 从运单汇总实时计算月度经营数据
