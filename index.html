@@ -1864,19 +1864,11 @@
                 rec.electricSubsidy += parseFloat(o.electricSubsidy) || 0;
                 rec.tollFee += parseFloat(o.tollFee) || 0;
                 rec.rent += parseFloat(o.rent) || 0;
-                // 装卸费从利润公式推导：利润 = 收入 - 司机运费 - 电补 - 高速费 - 装卸费 - 车租 - 维修费 - 人员成本
-                // 即：装卸费 = 收入 - 司机运费 - 电补 - 高速费 - 车租 - 维修费 - 人员成本 - 利润
-                const profit = parseFloat(o.profit) || 0;
-                const repairFee = parseFloat(o.repairFee) || 0;
-                const laborCost = parseFloat(o.laborCost) || 0;
-                const income = parseFloat(o.income) || 0;
-                const calcLoading = income - (parseFloat(o.driverFee)||0) - (parseFloat(o.electricSubsidy)||0)
-                    - (parseFloat(o.tollFee)||0) - (parseFloat(o.rent)||0) - repairFee - laborCost - profit;
-                if (calcLoading !== 0) rec.loadingFee += calcLoading;
+                // 装卸费直接从运单字段获取
+                rec.loadingFee += parseFloat(o.loadingFee) || 0;
                 // 平台服务费 = (司机运费 + 电补 + 装卸费) * 比例
                 const platformRate = getPlatformRate(proj);
-                const loadingFeePositive = calcLoading > 0 ? calcLoading : 0;
-                rec.platformFee += (parseFloat(o.driverFee||0) + parseFloat(o.electricSubsidy||0) + loadingFeePositive) * platformRate;
+                rec.platformFee += ((parseFloat(o.driverFee)||0) + (parseFloat(o.electricSubsidy)||0) + (parseFloat(o.loadingFee)||0)) * platformRate;
                 // 出勤趟次：有运费收入的算1趟
                 if ((parseFloat(o.income) || 0) > 0) rec.trips += 1;
             });
@@ -2358,7 +2350,7 @@
                 '经停点6':'stop6','到店时间.5':'stop6Time','6厂配送':'isFactoryDelivery',
                 '去程km':'outboundKm','回城km':'returnKm','总里程':'totalKm',
                 '收入':'income','司机运费':'driverFee','电补':'electricSubsidy','高速费':'tollFee',
-                '车租':'rent','维修费':'repairFee','人员成本':'laborCost','利润':'profit',
+                '装卸费':'loadingFee','车租':'rent','维修费':'repairFee','人员成本':'laborCost','利润':'profit',
                 '到店时效':'arrivalTime','回单':'receipt','温控跟踪':'tempTracking'
                 // 注意：不映射"项目"列，project 以弹窗选择为准
             };
