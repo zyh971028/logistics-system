@@ -418,8 +418,8 @@
                                                 <th class="text-right">上月支出</th><th class="text-right">当月支出</th><th class="text-right">支出变化</th>
                                                 <th class="text-right">毛利</th><th class="text-right">毛利率</th>
                                                 <th class="text-right">司机运费</th><th class="text-right">电补</th><th class="text-right">高速费</th>
-                                                <th class="text-right">装卸费</th><th class="text-right">平台服务费</th>
-                                                <th class="text-right">在用车辆</th><th class="text-right">实际运营</th>
+                                                <th class="text-right">车租</th><th class="text-right">装卸费</th><th class="text-right">平台服务费</th>
+                                                <th class="text-right">在用车辆</th><th class="text-right">实际运营车辆</th>
                                             </tr>
                                         </thead>
                                         <tbody id="bizTableBody"></tbody>
@@ -1344,6 +1344,7 @@
                     <td class="text-right">${fmt(p.driver_fee)}</td>
                     <td class="text-right">${fmt(p.electricity_subsidy||0)}</td>
                     <td class="text-right">${fmt(p.highway_fee||0)}</td>
+                    <td class="text-right">${fmt(p.car_group_cost||0)}</td>
                     <td class="text-right">${fmt(p.loading_fee||0)}</td>
                     <td class="text-right">${fmt(p.platform_fee||0)}</td>
                     <td class="text-right">${fmt(p.car_count)}</td>
@@ -1368,6 +1369,7 @@
                     <td class="text-right">${fmt(t.driver_fee)}</td>
                     <td class="text-right">${fmt(t.electricity_subsidy)}</td>
                     <td class="text-right">${fmt(t.highway_fee)}</td>
+                    <td class="text-right">${fmt(t.car_group_cost)}</td>
                     <td class="text-right">${fmt(t.loading_fee)}</td>
                     <td class="text-right">${fmt(t.platform_fee)}</td>
                     <td class="text-right">${fmt(t.car_count)}</td>
