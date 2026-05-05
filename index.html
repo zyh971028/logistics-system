@@ -2534,11 +2534,11 @@
 
             // 确保切换到运营概览标签页和柱状图视图，以便图表正确渲染
             showTab('dashboard');
-            // 先切到图表视图，再显式调用渲染函数，确保图表已经绘制到canvas上
-            toggleBizChart('chart');
+            // 先切到图表视图（必须用'bar'参数），确保canvas可见
+            toggleBizChart('bar');
             renderBizCharts(d);
-            // 等待图表渲染完成（Chart.js 异步渲染）
-            await new Promise(r => setTimeout(r, 1500));
+            // 等待图表渲染完成（Chart.js 异步渲染 + hidden切换后需要额外帧时间）
+            await new Promise(r => setTimeout(r, 2500));
 
             // 截取四张图表为 base64 图片
             function getChartImg(canvasId) {
@@ -2551,6 +2551,8 @@
             const imgProfit  = getChartImg('bizProfitChart');
             const imgTrips   = getChartImg('bizTripsChart');
             const imgCost    = getChartImg('bizCostChart');
+            // 截图完成后切回数据表视图
+            toggleBizChart('table');
 
             // 辅助格式化
             const fmtN = (n, d=0) => (n==null||isNaN(n)) ? '-' : n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});
@@ -2721,13 +2723,15 @@
 
             // ---- 先切换到运营概览标签页，确保图表渲染 ----
             showTab('dashboard');
+            // 确保图表视图可见（默认是隐藏的数据表），否则Chart.js无法正确渲染到canvas
+            toggleBizChart('bar');
             // 确保运营概览图表和月度分析图表都渲染了
             updateDashboard();
             renderBizCharts(d);
 
             showToast('正在渲染图表，请稍候...', 'info');
-            // 等图表渲染（Chart.js 异步渲染需要时间）
-            await new Promise(r => setTimeout(r, 1500));
+            // 等图表渲染（Chart.js 异步渲染需要时间，hidden切换后需要额外帧时间）
+            await new Promise(r => setTimeout(r, 2500));
 
             // ---- 获取图表图片 ----
             function getBase64(canvasId) {
@@ -2744,6 +2748,8 @@
             const b64BizProf  = getBase64('bizProfitChart');
             const b64BizTrips = getBase64('bizTripsChart');
             const b64BizCost  = getBase64('bizCostChart');
+            // 截图完成后切回数据表视图
+            toggleBizChart('table');
 
             // ---- 计算运营概览 KPI（从当前筛选数据） ----
             const filterProject = document.getElementById('dashboardProjectFilter') ? document.getElementById('dashboardProjectFilter').value : '';
