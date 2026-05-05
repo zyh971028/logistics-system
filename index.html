@@ -2538,7 +2538,7 @@
             toggleBizChart('bar');
             renderBizCharts(d);
             // 等待图表渲染完成（Chart.js 异步渲染 + hidden切换后需要额外帧时间）
-            await new Promise(r => setTimeout(r, 2500));
+            await new Promise(r => setTimeout(r, 3000));
 
             // 截取四张图表为 base64 图片
             function getChartImg(canvasId) {
@@ -2657,13 +2657,15 @@
   <div class="section-title">经营概览</div>
   <div class="dash-row">${dashCards}</div>
 
+${(imgIncome||imgProfit||imgTrips||imgCost)?`
   <div class="section-title">图表分析</div>
   <div class="chart-grid">
-    <div class="chart-box"><h4>各项目收入 vs 支出（元）</h4>${imgIncome?`<img src="${imgIncome}"/>`:'<p style="color:#ccc;font-size:11px">图表未加载，请先切换到"柱状图"视图再导出</p>'}</div>
-    <div class="chart-box"><h4>各项目毛利（元）</h4>${imgProfit?`<img src="${imgProfit}"/>`:'<p style="color:#ccc;font-size:11px">图表未加载</p>'}</div>
-    <div class="chart-box"><h4>各项目发车次（上月 vs 当月）</h4>${imgTrips?`<img src="${imgTrips}"/>`:'<p style="color:#ccc;font-size:11px">图表未加载</p>'}</div>
-    <div class="chart-box"><h4>成本结构占比（各项目）</h4>${imgCost?`<img src="${imgCost}"/>`:'<p style="color:#ccc;font-size:11px">图表未加载</p>'}</div>
+    ${imgIncome?`<div class="chart-box"><h4>各项目收入 vs 支出（元）</h4><img src="${imgIncome}"/></div>`:''}
+    ${imgProfit?`<div class="chart-box"><h4>各项目毛利（元）</h4><img src="${imgProfit}"/></div>`:''}
+    ${imgTrips?`<div class="chart-box"><h4>各项目发车次（上月 vs 当月）</h4><img src="${imgTrips}"/></div>`:''}
+    ${imgCost?`<div class="chart-box"><h4>成本结构占比（各项目）</h4><img src="${imgCost}"/></div>`:''}
   </div>
+`:''}
 
   <div class="section-title">项目明细数据</div>
   <table>
