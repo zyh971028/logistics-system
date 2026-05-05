@@ -2590,6 +2590,11 @@
                     <td style="text-align:right">¥${fmtN(p.driver_fee)}</td>
                     <td style="text-align:right">¥${fmtN(p.electricity_subsidy||0)}</td>
                     <td style="text-align:right">¥${fmtN(p.highway_fee||0)}</td>
+                    <td style="text-align:right">¥${fmtN(p.car_group_cost||0)}</td>
+                    <td style="text-align:right">¥${fmtN(p.loading_fee||0)}</td>
+                    <td style="text-align:right">¥${fmtN(p.platform_fee||0)}</td>
+                    <td style="text-align:right">${fmtN(p.car_count||0)}</td>
+                    <td style="text-align:right">${fmtN(p.active_car_count||0)}</td>
                 </tr>`).join('');
             const totalRow = `
                 <tr style="font-weight:700;background:#f8fafc;border-top:2px solid #cbd5e1">
@@ -2607,6 +2612,11 @@
                     <td style="text-align:right">¥${fmtN(t.driver_fee)}</td>
                     <td style="text-align:right">¥${fmtN(t.electricity_subsidy)}</td>
                     <td style="text-align:right">¥${fmtN(t.highway_fee)}</td>
+                    <td style="text-align:right">¥${fmtN(t.car_group_cost||0)}</td>
+                    <td style="text-align:right">¥${fmtN(t.loading_fee||0)}</td>
+                    <td style="text-align:right">¥${fmtN(t.platform_fee||0)}</td>
+                    <td style="text-align:right">${fmtN(t.car_count||0)}</td>
+                    <td style="text-align:right">${fmtN(t.active_car_count||0)}</td>
                 </tr>`;
 
             // 生成完整 HTML
@@ -2710,12 +2720,14 @@
 
 
             // ---- 先切换到运营概览标签页，确保图表渲染 ----
-            // 直接调用showTab函数切换到仪表盘页面
             showTab('dashboard');
+            // 确保运营概览图表和月度分析图表都渲染了
+            updateDashboard();
+            renderBizCharts(d);
 
             showToast('正在渲染图表，请稍候...', 'info');
             // 等图表渲染（Chart.js 异步渲染需要时间）
-            await new Promise(r => setTimeout(r, 1200));
+            await new Promise(r => setTimeout(r, 1500));
 
             // ---- 获取图表图片 ----
             function getBase64(canvasId) {
