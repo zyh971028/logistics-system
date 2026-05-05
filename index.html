@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>物流项目运营管理系统</title>
-    <link rel="stylesheet" href="./tailwind.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script src="./exceljs.min.js"></script>
@@ -13,6 +13,11 @@
     <style>
         * { box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        /* 车辆运营表头蓝色渐变 */
+        .table-header-blue {
+            background: linear-gradient(to right, #1d4ed8, #1e40af) !important;
+            color: #fff !important;
+        }
         .card { background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         .btn-primary { background: #3b82f6; color: white; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; }
         .btn-primary:hover { background: #2563eb; }
@@ -436,7 +441,7 @@
                     <div class="table-container" style="max-height:68vh;">
                         <table class="text-sm">
                             <thead>
-                                <tr class="bg-gradient-to-r from-blue-700 to-blue-900 text-white">
+                                <tr class="table-header-blue text-white">
                                     <th class="text-center" style="width:50px;">序列</th>
                                     <th style="width:85px;">月份</th>
                                     <th style="width:120px;">项目名称</th>
