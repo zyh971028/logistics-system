@@ -2534,9 +2534,11 @@
 
             // 确保切换到运营概览标签页和柱状图视图，以便图表正确渲染
             showTab('dashboard');
+            // 先切到图表视图，再显式调用渲染函数，确保图表已经绘制到canvas上
             toggleBizChart('chart');
+            renderBizCharts(d);
             // 等待图表渲染完成（Chart.js 异步渲染）
-            await new Promise(r => setTimeout(r, 1200));
+            await new Promise(r => setTimeout(r, 1500));
 
             // 截取四张图表为 base64 图片
             function getChartImg(canvasId) {
@@ -2661,6 +2663,8 @@
         <th style="text-align:right">上月支出</th><th style="text-align:right">当月支出</th>
         <th style="text-align:right">毛利</th><th style="text-align:right">毛利率</th>
         <th style="text-align:right">司机运费</th><th style="text-align:right">电补</th><th style="text-align:right">高速费</th>
+        <th style="text-align:right">车租</th><th style="text-align:right">装卸费</th><th style="text-align:right">平台服务费</th>
+        <th style="text-align:right">在用车辆</th><th style="text-align:right">实际运营车辆</th>
       </tr>
     </thead>
     <tbody>${tableRows}</tbody>
