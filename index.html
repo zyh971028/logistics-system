@@ -1212,8 +1212,20 @@
                 // 计算车次（运单数）- 只统计有运费收入的
                 const curOrdersWithIncome = curOrders.filter(o => parseFloat(o.income || 0) > 0);
                 const lastOrdersWithIncome = lastOrders.filter(o => parseFloat(o.income || 0) > 0);
-                const cur_trips = curOrdersWithIncome.length;
-                const last_trips = lastOrdersWithIncome.length;
+                let cur_trips = curOrdersWithIncome.length;
+                let last_trips = lastOrdersWithIncome.length;
+                // 3月数据（2026-03）是手工补录的合计，没有逐条运单，发车次数手动指定
+                const marchTripOverride = {
+                    '正阳牧原': 129,
+                    '泰州好想来': 106,
+                    '南平恒冰': 227,
+                    '平顶山好想来': 247,
+                    '亳州好想来': 245,
+                    '驻马店来优品': 498
+                };
+                if (lastMonthStr === '2026-03' && marchTripOverride[projectName] !== undefined) {
+                    last_trips = marchTripOverride[projectName];
+                }
                 const trips_change_rate = last_trips > 0 ? (cur_trips - last_trips) / last_trips : (cur_trips > 0 ? 1 : 0);
                 
                 // 计算收入
