@@ -199,30 +199,30 @@
                             <div class="card p-4 bg-gradient-to-br from-cyan-50 to-white border-l-4 border-cyan-500">
                                 <div class="flex items-center justify-between mb-2">
                                     <span class="text-gray-500 text-xs">司机运费</span>
-                                    <div class="w-7 h-7 rounded-full bg-cyan-100 flex items-center justify-center"><i class="fas fa-user-tie text-cyan-500 text-xs"></i></div>
+                                    <div class="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center"><i class="fas fa-user-tie text-cyan-500 text-sm"></i></div>
                                 </div>
-                                <p id="total-driver-fee" class="text-lg font-bold text-cyan-600 number">0</p>
+                                <p id="total-driver-fee" class="text-xl font-bold text-cyan-600 number">0</p>
                             </div>
                             <div class="card p-4 bg-gradient-to-br from-green-50 to-white border-l-4 border-green-500">
                                 <div class="flex items-center justify-between mb-2">
                                     <span class="text-gray-500 text-xs">电补</span>
-                                    <div class="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center"><i class="fas fa-bolt text-green-500 text-xs"></i></div>
+                                    <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center"><i class="fas fa-bolt text-green-500 text-sm"></i></div>
                                 </div>
-                                <p id="total-electric" class="text-lg font-bold text-green-600 number">0</p>
+                                <p id="total-electric" class="text-xl font-bold text-green-600 number">0</p>
                             </div>
                             <div class="card p-4 bg-gradient-to-br from-orange-50 to-white border-l-4 border-orange-500">
                                 <div class="flex items-center justify-between mb-2">
                                     <span class="text-gray-500 text-xs">高速费</span>
-                                    <div class="w-7 h-7 rounded-full bg-orange-100 flex items-center justify-center"><i class="fas fa-road text-orange-500 text-xs"></i></div>
+                                    <div class="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center"><i class="fas fa-road text-orange-500 text-sm"></i></div>
                                 </div>
-                                <p id="total-toll" class="text-lg font-bold text-orange-600 number">0</p>
+                                <p id="total-toll" class="text-xl font-bold text-orange-600 number">0</p>
                             </div>
                             <div class="card p-4 bg-gradient-to-br from-indigo-50 to-white border-l-4 border-indigo-500">
                                 <div class="flex items-center justify-between mb-2">
                                     <span class="text-gray-500 text-xs">车租</span>
-                                    <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center"><i class="fas fa-truck text-indigo-500 text-xs"></i></div>
+                                    <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center"><i class="fas fa-truck text-indigo-500 text-sm"></i></div>
                                 </div>
-                                <p id="total-rent" class="text-lg font-bold text-indigo-600 number">0</p>
+                                <p id="total-rent" class="text-xl font-bold text-indigo-600 number">0</p>
                             </div>
                         </div>
                     </div>
@@ -311,6 +311,7 @@
                                                 <th class="text-right">上月支出</th><th class="text-right">当月支出</th><th class="text-right">支出变化</th>
                                                 <th class="text-right">毛利</th><th class="text-right">毛利率</th>
                                                 <th class="text-right">司机运费</th><th class="text-right">电补</th><th class="text-right">高速费</th>
+                                                <th class="text-right">装卸费</th><th class="text-right">平台服务费</th>
                                                 <th class="text-right">在用车辆</th><th class="text-right">实际运营</th>
                                             </tr>
                                         </thead>
@@ -435,20 +436,21 @@
                     <div class="table-container" style="max-height:68vh;">
                         <table class="text-sm">
                             <thead>
-                                <tr class="bg-gradient-to-r from-gray-800 to-gray-900 text-white">
+                                <tr class="bg-gradient-to-r from-blue-700 to-blue-900 text-white">
                                     <th class="text-center" style="width:50px;">序列</th>
-                                    <th style="width:90px;">月份</th>
-                                    <th>项目名称</th>
-                                    <th style="width:110px;">车牌号</th>
-                                    <th class="text-center" style="width:80px;">出勤趟次</th>
-                                    <th class="text-right" style="width:90px;">行驶总里程</th>
-                                    <th class="text-right" style="width:100px;">累计收入</th>
-                                    <th class="text-right" style="width:90px;">司机运费</th>
+                                    <th style="width:85px;">月份</th>
+                                    <th style="width:120px;">项目名称</th>
+                                    <th style="width:100px;">车牌号</th>
+                                    <th class="text-center" style="width:75px;">出勤趟次</th>
+                                    <th class="text-right" style="width:85px;">行驶总里程</th>
+                                    <th class="text-right" style="width:95px;">累计收入</th>
+                                    <th class="text-right" style="width:85px;">司机运费</th>
                                     <th class="text-right" style="width:80px;">司机电补</th>
-                                    <th class="text-right" style="width:80px;">高速费</th>
+                                    <th class="text-right" style="width:75px;">高速费</th>
                                     <th class="text-right" style="width:80px;">高速费单价</th>
-                                    <th class="text-right" style="width:80px;">装卸费</th>
-                                    <th class="text-right" style="width:90px;">累计车租</th>
+                                    <th class="text-right" style="width:75px;">装卸费</th>
+                                    <th class="text-right" style="width:85px;">累计车租</th>
+                                    <th class="text-right" style="width:90px;">利润</th>
                                 </tr>
                             </thead>
                             <tbody id="vehicleOpsTable"></tbody>
@@ -992,6 +994,16 @@
         }
 
         // ====== 月度项目经营分析 ======
+
+        // 获取项目平台服务费比例
+        function getPlatformRate(projectName) {
+            const rate5 = ['亳州好想来', '平顶山好想来', '驻马店来优品'];
+            const rate672 = ['泰州好想来', '南平恒冰', '正阳牧原'];
+            if (rate5.some(n => projectName && projectName.includes(n))) return 0.053;
+            if (rate672.some(n => projectName && projectName.includes(n))) return 0.0672;
+            return 0.053; // 默认5.3%
+        }
+
         function renderBizAnalysis() {
             const d = calculateBizData();
             document.getElementById('biz-analysis-title').textContent = d.title;
@@ -1069,11 +1081,25 @@
                 const income_change_rate = last_income > 0 ? (cur_income - last_income) / last_income : (cur_income > 0 ? 1 : 0);
                 
                 // 计算成本
-                const calcCost = (orderList) => orderList.reduce((s, o) => {
-                    return s + parseFloat(o.driverFee || 0) + parseFloat(o.electricSubsidy || 0) + 
-                           parseFloat(o.tollFee || 0) + parseFloat(o.rent || 0) + 
-                           parseFloat(o.repairFee || 0) + parseFloat(o.laborCost || 0);
-                }, 0);
+                const calcCost = (orderList) => {
+                    // 平台服务费比例：按项目名称确定
+                    const platformRate = getPlatformRate(projectName);
+                    return orderList.reduce((s, o) => {
+                        const df = parseFloat(o.driverFee || 0);
+                        const es = parseFloat(o.electricSubsidy || 0);
+                        const tf = parseFloat(o.tollFee || 0);
+                        const rt = parseFloat(o.rent || 0);
+                        const rp = parseFloat(o.repairFee || 0);
+                        const lc = parseFloat(o.laborCost || 0);
+                        // 装卸费从利润公式推导
+                        const inc = parseFloat(o.income || 0);
+                        const pft = parseFloat(o.profit || 0);
+                        const loadingFee = inc - df - es - tf - rt - rp - lc - pft;
+                        // 平台服务费 = (司机运费 + 电补 + 装卸费) * 比例
+                        const platformFee = (df + es + (loadingFee > 0 ? loadingFee : 0)) * platformRate;
+                        return s + df + es + tf + rt + rp + lc + loadingFee + platformFee;
+                    }, 0);
+                };
                 
                 const cur_cost = calcCost(curOrders);
                 const last_cost = calcCost(lastOrders);
@@ -1088,8 +1114,34 @@
                 const car_group_cost = curOrders.reduce((s, o) => s + parseFloat(o.rent || 0), 0);
                 const electricity_subsidy = curOrders.reduce((s, o) => s + parseFloat(o.electricSubsidy || 0), 0);
                 const highway_fee = curOrders.reduce((s, o) => s + parseFloat(o.tollFee || 0), 0);
-                const loading_fee = 0; // 运单中暂无此字段
-                const platform_fee = 0; // 运单中暂无此字段
+                // 装卸费从利润公式反推：利润 = 收入 - 司机运费 - 电补 - 高速费 - 车租 - 维修费 - 人员成本 - 装卸费
+                const loading_fee = curOrders.reduce((s, o) => {
+                    const inc = parseFloat(o.income || 0);
+                    const df = parseFloat(o.driverFee || 0);
+                    const es = parseFloat(o.electricSubsidy || 0);
+                    const tf = parseFloat(o.tollFee || 0);
+                    const rt = parseFloat(o.rent || 0);
+                    const rp = parseFloat(o.repairFee || 0);
+                    const lc = parseFloat(o.laborCost || 0);
+                    const pft = parseFloat(o.profit || 0);
+                    const lf = inc - df - es - tf - rt - rp - lc - pft;
+                    return s + lf;
+                }, 0);
+                // 平台服务费 = (司机运费 + 电补 + 装卸费) * 比例
+                const platformRate = getPlatformRate(projectName);
+                const loading_fee_positive = curOrders.reduce((s, o) => {
+                    const inc = parseFloat(o.income || 0);
+                    const df = parseFloat(o.driverFee || 0);
+                    const es = parseFloat(o.electricSubsidy || 0);
+                    const tf = parseFloat(o.tollFee || 0);
+                    const rt = parseFloat(o.rent || 0);
+                    const rp = parseFloat(o.repairFee || 0);
+                    const lc = parseFloat(o.laborCost || 0);
+                    const pft = parseFloat(o.profit || 0);
+                    const lf = inc - df - es - tf - rt - rp - lc - pft;
+                    return s + (lf > 0 ? lf : 0);
+                }, 0);
+                const platform_fee = (driver_fee + electricity_subsidy + loading_fee_positive) * platformRate;
                 const repair_fee = curOrders.reduce((s, o) => s + parseFloat(o.repairFee || 0), 0);
                 const staff_cost = curOrders.reduce((s, o) => s + parseFloat(o.laborCost || 0), 0);
                 
@@ -1132,6 +1184,8 @@
                 car_group_cost: projects.reduce((s, p) => s + (p.car_group_cost||0), 0),
                 electricity_subsidy: projects.reduce((s, p) => s + p.electricity_subsidy, 0),
                 highway_fee: projects.reduce((s, p) => s + (p.highway_fee||0), 0),
+                loading_fee: projects.reduce((s, p) => s + (p.loading_fee||0), 0),
+                platform_fee: projects.reduce((s, p) => s + (p.platform_fee||0), 0),
                 car_count: projects.reduce((s, p) => s + (p.car_count||0), 0),
                 active_car_count: projects.reduce((s, p) => s + (p.active_car_count||0), 0),
                 gross_profit: projects.reduce((s, p) => s + p.gross_profit, 0)
@@ -1194,6 +1248,8 @@
                     <td class="text-right">${fmt(p.driver_fee)}</td>
                     <td class="text-right">${fmt(p.electricity_subsidy||0)}</td>
                     <td class="text-right">${fmt(p.highway_fee||0)}</td>
+                    <td class="text-right">${fmt(p.loading_fee||0)}</td>
+                    <td class="text-right">${fmt(p.platform_fee||0)}</td>
                     <td class="text-right">${fmt(p.car_count)}</td>
                     <td class="text-right">${fmt(p.active_car_count)}</td>
                 </tr>`).join('');
@@ -1216,6 +1272,8 @@
                     <td class="text-right">${fmt(t.driver_fee)}</td>
                     <td class="text-right">${fmt(t.electricity_subsidy)}</td>
                     <td class="text-right">${fmt(t.highway_fee)}</td>
+                    <td class="text-right">${fmt(t.loading_fee)}</td>
+                    <td class="text-right">${fmt(t.platform_fee)}</td>
                     <td class="text-right">${fmt(t.car_count)}</td>
                     <td class="text-right">${fmt(t.active_car_count)}</td>
                 </tr>`;
@@ -1754,10 +1812,11 @@
             // 渲染表格行
             const tbody = document.getElementById('vehicleOpsTable');
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="13" class="text-center text-gray-400 py-8"><i class="fas fa-inbox mr-2"></i>暂无车辆运营数据</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="14" class="text-center text-gray-400 py-8"><i class="fas fa-inbox mr-2"></i>暂无车辆运营数据</td></tr>';
             } else {
                 tbody.innerHTML = pageData.map((r, i) => {
                     const tollUnitPrice = r.totalKm > 0 ? (r.tollFee / r.totalKm) : 0;
+                    const profitVal = r.income - r.driverFee - r.electricSubsidy - r.tollFee - r.loadingFee - r.rent;
                     const rowClass = i % 2 === 0 ? 'bg-white' : 'bg-gray-50';
                     return `<tr class="${rowClass} hover:bg-blue-50 transition-colors">
                         <td class="text-center text-gray-400">${start + i + 1}</td>
@@ -1773,12 +1832,13 @@
                         <td class="text-right number text-orange-600">${tollUnitPrice.toFixed(3)}</td>
                         <td class="text-right number text-gray-700">${r.loadingFee.toFixed(2)}</td>
                         <td class="text-right number text-gray-700">${r.rent.toFixed(2)}</td>
+                        <td class="text-right number font-semibold ${profitVal >= 0 ? 'text-emerald-600' : 'text-red-600'}">${profitVal.toFixed(2)}</td>
                     </tr>`;
                 }).join('');
             }
 
             // 渲染合计行
-            const sumRow = { totalKm:0, income:0, driverFee:0, electricSubsidy:0, tollFee:0, loadingFee:0, rent:0, trips:0 };
+            const sumRow = { totalKm:0, income:0, driverFee:0, electricSubsidy:0, tollFee:0, loadingFee:0, rent:0, trips:0, profit:0 };
             filtered.forEach(r => {
                 sumRow.totalKm += r.totalKm;
                 sumRow.income += r.income;
@@ -1788,6 +1848,7 @@
                 sumRow.loadingFee += r.loadingFee;
                 sumRow.rent += r.rent;
                 sumRow.trips += r.trips;
+                sumRow.profit += (r.income - r.driverFee - r.electricSubsidy - r.tollFee - r.loadingFee - r.rent);
             });
             const sumTollUnit = sumRow.totalKm > 0 ? (sumRow.tollFee / sumRow.totalKm) : 0;
             document.getElementById('vehicleOpsTableFooter').innerHTML =
@@ -1802,6 +1863,7 @@
                     <td class="text-right number font-semibold text-orange-600">${sumTollUnit.toFixed(3)}</td>
                     <td class="text-right number font-semibold">${sumRow.loadingFee.toFixed(2)}</td>
                     <td class="text-right number font-semibold">${sumRow.rent.toFixed(2)}</td>
+                    <td class="text-right number font-bold ${sumRow.profit >= 0 ? 'text-emerald-600' : 'text-red-600'}">${sumRow.profit.toFixed(2)}</td>
                 </tr>`;
 
             // 渲染分页（带页码范围选择）
@@ -1891,13 +1953,14 @@
                 '高速费': parseFloat(r.tollFee.toFixed(2)),
                 '高速费单价': parseFloat((r.totalKm > 0 ? (r.tollFee / r.totalKm) : 0).toFixed(3)),
                 '装卸费': parseFloat(r.loadingFee.toFixed(2)),
-                '累计车租': parseFloat(r.rent.toFixed(2))
+                '累计车租': parseFloat(r.rent.toFixed(2)),
+                '利润': parseFloat((r.income - r.driverFee - r.electricSubsidy - r.tollFee - r.loadingFee - r.rent).toFixed(2))
             }));
             const ws = XLXS.utils.json_to_sheet(exportData);
             // 设置列宽
             ws['!cols'] = [
                 {wch:6},{wch:10},{wch:16},{wch:12},{wch:10},{wch:12},{wch:12},
-                {wch:10},{wch:10},{wch:10},{wch:12},{wch:10},{wch:10}
+                {wch:10},{wch:10},{wch:10},{wch:12},{wch:10},{wch:10},{wch:10}
             ];
             const wb = XLXS.utils.book_new();
             XLXS.utils.book_append_sheet(wb, ws, '车辆运营');
@@ -2740,7 +2803,7 @@
             wsProj.getCell('A1').alignment = mkAlign('center','middle');
             wsProj.getRow(1).height = 30;
 
-            const projHeaders = ['类型','项目','上月发车','当月发车','车次变化','上月收入','当月收入','收入变化','上月支出','当月支出','毛利','毛利率','司机运费','电补','高速费','车组成本','装卸费','平台费'];
+            const projHeaders = ['类型','项目','上月发车','当月发车','车次变化','上月收入','当月收入','收入变化','上月支出','当月支出','毛利','毛利率','司机运费','电补','高速费','装卸费','平台服务费','车组成本'];
             const phRow = wsProj.addRow(projHeaders);
             phRow.height = 28;
             phRow.eachCell(c => { c.font=mkFont(true,11,'FFFFFFFF'); c.fill=mkFill('4F46E5'); c.alignment=mkAlign('center','middle'); c.border=mkBorder('4F46E5'); });
@@ -2753,7 +2816,8 @@
                     fmtY(p.last_cost), fmtY(p.cur_cost),
                     fmtY(p.gross_profit), fmtPct(p.gross_margin),
                     fmtY(p.driver_fee), fmtY(p.electricity_subsidy||0), fmtY(p.highway_fee||0),
-                    fmtY(p.car_group_cost||0), fmtY(p.loading_fee||0), fmtY(p.platform_fee||0),
+                    fmtY(p.loading_fee||0), fmtY(p.platform_fee||0),
+                    fmtY(p.car_group_cost||0),
                 ]);
                 row.height = 22;
                 const bg = idx%2===0 ? 'FFFFFFFF' : 'FFF8FAFC';
@@ -2775,7 +2839,8 @@
                 fmtY(t.last_cost), fmtY(t.cur_cost),
                 fmtY(t.gross_profit), fmtPct(t.gross_margin),
                 fmtY(t.driver_fee), fmtY(t.electricity_subsidy), fmtY(t.highway_fee),
-                fmtY(t.car_group_cost||0), fmtY(t.loading_fee||0), fmtY(t.platform_fee||0),
+                fmtY(t.loading_fee||0), fmtY(t.platform_fee||0),
+                fmtY(t.car_group_cost||0),
             ]);
             totPRow.height = 24;
             totPRow.eachCell((cell,ci) => {
