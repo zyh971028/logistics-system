@@ -1770,8 +1770,8 @@
             if (!tbody) return;
             // 平台服务费比例
             const platformRates = { '亳州好想来': 0.053, '平顶山好想来': 0.053, '驻马店来优品': 0.053, '泰州好想来': 0.0672, '南平恒冰': 0.0672, '正阳牧原': 0.0672 };
-            // 占比颜色梯度：占比越高颜色越深
-            const rankColors = ['#1e40af', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#f97316'];
+            // 占比颜色：第1酒红、第2蓝、第3绿、第4橙、第5紫、第6灰
+            const rankColors = ['#9f1239', '#3b82f6', '#10b981', '#f97316', '#8b5cf6', '#9ca3af'];
             const activeProjects = projectFilter => projectFilter ? [projectFilter] : projects;
             const rows = activeProjects(document.getElementById('dashboardProjectFilter')?.value || '').map(proj => {
                 const pData = data.filter(o => o.project === proj);
