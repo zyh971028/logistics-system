@@ -241,7 +241,7 @@
                         <select id="dashboardProjectFilter" onchange="updateDashboard()" class="px-3 py-1.5 border rounded-lg text-sm">
                             <option value="">全部项目</option>
                         </select>
-                        <select id="dashboardMonthFilter" onchange="updateDashboard()" class="px-3 py-1.5 border rounded-lg text-sm">
+                        <select id="dashboardMonthFilter" onchange="syncMonthToBiz();updateDashboard()" class="px-3 py-1.5 border rounded-lg text-sm">
                             <option value="">全部月份</option>
                         </select>
                         <span class="text-xs text-gray-400"><i class="fas fa-grip-vertical mr-1"></i>拖动模块标题栏可调整顺序</span>
@@ -337,6 +337,35 @@
                         </div>
                     </div>
 
+                    <!-- 模块：支出项占比 -->
+                    <div class="drag-module mb-5" data-module="cost-ratio">
+                        <div class="flex items-center mb-3">
+                            <span class="drag-handle" title="拖动排序"><i class="fas fa-grip-vertical"></i></span>
+                            <span class="text-xs text-gray-400 ml-1 font-medium">支出项占比</span>
+                        </div>
+                        <div class="card p-4">
+                            <div class="overflow-x-auto">
+                                <table class="text-sm w-full" id="costRatioTable">
+                                    <thead>
+                                        <tr class="table-header-blue text-white">
+                                            <th class="py-2 px-3 text-center">项目名称</th>
+                                            <th class="py-2 px-3 text-right">总支出(元)</th>
+                                            <th class="py-2 px-3 text-right">司机运费</th>
+                                            <th class="py-2 px-3 text-right">车租</th>
+                                            <th class="py-2 px-3 text-right">电补</th>
+                                            <th class="py-2 px-3 text-right">高速费</th>
+                                            <th class="py-2 px-3 text-right">装卸费</th>
+                                            <th class="py-2 px-3 text-right">平台服务费</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="costRatioBody">
+                                        <tr><td colspan="8" class="text-center text-gray-400 py-4">暂无数据</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- 模块 3：收入利润趋势 + 成本结构 -->
                     <div class="drag-module mb-5" data-module="charts">
                         <div class="flex items-center mb-2">
@@ -398,7 +427,7 @@
                                 <h3 class="font-bold text-sm text-gray-700"><i class="fas fa-chart-bar mr-2 text-indigo-600"></i>月度项目经营分析 <span class="text-xs font-normal text-gray-400 ml-2" id="biz-analysis-title"></span></h3>
                                 <div class="flex items-center gap-2">
                                     <label class="text-xs text-gray-500">选择月份：</label>
-                                    <input type="month" id="biz-month-picker" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-700 focus:outline-none focus:border-indigo-400" onchange="renderBizAnalysis()">
+                                    <input type="month" id="biz-month-picker" class="text-xs border border-gray-300 rounded px-2 py-1 text-gray-700 focus:outline-none focus:border-indigo-400" onchange="document.getElementById('dashboardMonthFilter').value=this.value;renderBizAnalysis()">
                                     <button onclick="document.getElementById('biz-month-picker').value='';renderBizAnalysis()" class="text-xs px-2 py-1 rounded border border-gray-300 text-gray-500 bg-white hover:bg-gray-50">当月</button>
                                     <button onclick="toggleBizChart('bar')" id="biz-btn-bar" class="text-xs px-3 py-1 rounded border border-gray-300 text-gray-500 bg-white">柱状图</button>
                                     <button onclick="toggleBizChart('table')" id="biz-btn-table" class="text-xs px-3 py-1 rounded border border-indigo-400 text-indigo-600 bg-indigo-50 font-medium">数据表</button>
@@ -1657,6 +1686,15 @@
         }
 
         // ====== 仪表盘 ======
+        // 同步顶部月份筛选器到月度分析月份选择器
+        function syncMonthToBiz() {
+            const val = document.getElementById('dashboardMonthFilter').value;
+            const bizPicker = document.getElementById('biz-month-picker');
+            if (bizPicker && val) {
+                bizPicker.value = val;
+                renderBizAnalysis();
+            }
+        }
         function updateDashboard() {
             const projectFilter = document.getElementById('dashboardProjectFilter')?.value || '';
             const monthFilter   = document.getElementById('dashboardMonthFilter')?.value || '';
@@ -1690,6 +1728,7 @@
             renderCharts(data);
             renderProjectStats();
             renderCustomWidgets();
+            renderCostRatio(data);
         }
 
         function renderCharts(data) {
@@ -1723,6 +1762,44 @@
                     datasets: [{data:costVals, backgroundColor:['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#6b7280']}]},
                 options: {responsive:true}
             });
+        }
+
+        // 支出项占比表格
+        function renderCostRatio(data) {
+            const tbody = document.getElementById('costRatioBody');
+            if (!tbody) return;
+            // 平台服务费比例
+            const platformRates = { '亳州好想来': 0.053, '平顶山好想来': 0.053, '驻马店来优品': 0.053, '泰州好想来': 0.0672, '南平恒冰': 0.0672, '正阳牧原': 0.0672 };
+            const activeProjects = projectFilter => projectFilter ? [projectFilter] : projects;
+            const rows = activeProjects(document.getElementById('dashboardProjectFilter')?.value || '').map(proj => {
+                const pData = data.filter(o => o.project === proj);
+                if (pData.length === 0) return null;
+                const s = k => pData.reduce((a, o) => a + parseFloat(o[k] || 0), 0);
+                const driverFee = s('driverFee');
+                const rent = s('rent');
+                const electric = s('electricSubsidy');
+                const toll = s('tollFee');
+                const loading = s('loadingFee');
+                const rate = platformRates[proj] || 0.053;
+                const platformFee = (driverFee + electric + loading) * rate;
+                const total = driverFee + rent + electric + toll + loading + platformFee;
+                if (total <= 0) return null;
+                const pct = v => (v / total * 100).toFixed(1) + '%';
+                const fmt = v => v.toFixed(0);
+                // 用进度条样式显示占比
+                const bar = (pctStr, color) => `<div class="flex items-center gap-1"><span class="text-xs">${pctStr}</span><div class="w-16 h-2 bg-gray-200 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:${parseFloat(pctStr)}%;background:${color}"></div></div></div>`;
+                return `<tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-2 px-3 font-medium text-sm">${proj}</td>
+                    <td class="py-2 px-3 text-right text-sm font-semibold">${fmt(total)}</td>
+                    <td class="py-2 px-3 text-right">${bar(pct(driverFee), '#3b82f6')}</td>
+                    <td class="py-2 px-3 text-right">${bar(pct(rent), '#6366f1')}</td>
+                    <td class="py-2 px-3 text-right">${bar(pct(electric), '#10b981')}</td>
+                    <td class="py-2 px-3 text-right">${bar(pct(toll), '#f59e0b')}</td>
+                    <td class="py-2 px-3 text-right">${bar(pct(loading), '#ef4444')}</td>
+                    <td class="py-2 px-3 text-right">${bar(pct(platformFee), '#8b5cf6')}</td>
+                </tr>`;
+            }).filter(Boolean);
+            tbody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="8" class="text-center text-gray-400 py-4">暂无数据</td></tr>';
         }
 
         // 项目统计分析
