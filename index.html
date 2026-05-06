@@ -1770,6 +1770,8 @@
             if (!tbody) return;
             // 平台服务费比例
             const platformRates = { '亳州好想来': 0.053, '平顶山好想来': 0.053, '驻马店来优品': 0.053, '泰州好想来': 0.0672, '南平恒冰': 0.0672, '正阳牧原': 0.0672 };
+            // 占比颜色梯度：占比越高颜色越深
+            const rankColors = ['#1e40af', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#f97316'];
             const activeProjects = projectFilter => projectFilter ? [projectFilter] : projects;
             const rows = activeProjects(document.getElementById('dashboardProjectFilter')?.value || '').map(proj => {
                 const pData = data.filter(o => o.project === proj);
@@ -1784,19 +1786,35 @@
                 const platformFee = (driverFee + electric + loading) * rate;
                 const total = driverFee + rent + electric + toll + loading + platformFee;
                 if (total <= 0) return null;
-                const pct = v => (v / total * 100).toFixed(1) + '%';
+                // 构建各项并按占比降序排列，分配颜色
+                const allItems = [
+                    { name: '司机运费', val: driverFee },
+                    { name: '车租',     val: rent },
+                    { name: '电补',     val: electric },
+                    { name: '高速费',   val: toll },
+                    { name: '装卸费',   val: loading },
+                    { name: '平台服务费', val: platformFee }
+                ];
+                // 建立名称→颜色映射（按占比排名）
+                allItems.sort((a, b) => b.val - a.val);
+                const colorMap = {};
+                allItems.forEach((item, i) => { colorMap[item.name] = rankColors[i] || '#9ca3af'; });
+                // 固定顺序输出
+                const pctNum = v => v / total * 100;
+                const bar = (pctVal, color) => {
+                    const w = Math.max(pctVal, 1);
+                    return `<div class="flex items-center justify-end gap-2"><span class="text-xs w-10 text-right text-gray-600 shrink-0">${pctVal.toFixed(1)}%</span><div class="w-20 h-2.5 bg-gray-100 rounded-full overflow-hidden shrink-0"><div class="h-full rounded-full" style="width:${w}%;background:${color}"></div></div></div>`;
+                };
                 const fmt = v => v.toFixed(0);
-                // 用进度条样式显示占比
-                const bar = (pctStr, color) => `<div class="flex items-center gap-1"><span class="text-xs">${pctStr}</span><div class="w-16 h-2 bg-gray-200 rounded-full overflow-hidden"><div class="h-full rounded-full" style="width:${parseFloat(pctStr)}%;background:${color}"></div></div></div>`;
                 return `<tr class="border-b border-gray-100 hover:bg-gray-50">
-                    <td class="py-2 px-3 font-medium text-sm">${proj}</td>
+                    <td class="py-2 px-3 font-medium text-sm whitespace-nowrap">${proj}</td>
                     <td class="py-2 px-3 text-right text-sm font-semibold">${fmt(total)}</td>
-                    <td class="py-2 px-3 text-right">${bar(pct(driverFee), '#3b82f6')}</td>
-                    <td class="py-2 px-3 text-right">${bar(pct(rent), '#6366f1')}</td>
-                    <td class="py-2 px-3 text-right">${bar(pct(electric), '#10b981')}</td>
-                    <td class="py-2 px-3 text-right">${bar(pct(toll), '#f59e0b')}</td>
-                    <td class="py-2 px-3 text-right">${bar(pct(loading), '#ef4444')}</td>
-                    <td class="py-2 px-3 text-right">${bar(pct(platformFee), '#8b5cf6')}</td>
+                    <td class="py-2 px-2">${bar(pctNum(driverFee), colorMap['司机运费'])}</td>
+                    <td class="py-2 px-2">${bar(pctNum(rent), colorMap['车租'])}</td>
+                    <td class="py-2 px-2">${bar(pctNum(electric), colorMap['电补'])}</td>
+                    <td class="py-2 px-2">${bar(pctNum(toll), colorMap['高速费'])}</td>
+                    <td class="py-2 px-2">${bar(pctNum(loading), colorMap['装卸费'])}</td>
+                    <td class="py-2 px-2">${bar(pctNum(platformFee), colorMap['平台服务费'])}</td>
                 </tr>`;
             }).filter(Boolean);
             tbody.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="8" class="text-center text-gray-400 py-4">暂无数据</td></tr>';
