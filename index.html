@@ -1372,6 +1372,15 @@
             document.getElementById('biz-btn-table').className = isTable
                 ? 'text-xs px-3 py-1 rounded border border-indigo-400 text-indigo-600 bg-indigo-50 font-medium'
                 : 'text-xs px-3 py-1 rounded border border-gray-300 text-gray-500 bg-white';
+            // 切换到柱状图时自动渲染（canvas 必须可见后才能正确初始化尺寸）
+            if (!isTable) {
+                requestAnimationFrame(() => {
+                    const d = calculateBizData();
+                    renderBizCharts(d);
+                    // resize 已有图表实例（应对 hidden→visible 后尺寸为0的情况）
+                    [bizIncomeChart, bizProfitChart, bizTripsChart, bizCostChart].forEach(c => { if (c) c.resize(); });
+                });
+            }
         }
 
         function fmt(n, digits=0) {
