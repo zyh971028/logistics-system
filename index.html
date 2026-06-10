@@ -212,6 +212,9 @@
                 <a href="#" onclick="showTab('admin')" id="nav-admin" class="block py-2.5 px-4 rounded-lg mb-1 hover:bg-gray-800 text-sm">
                     <i class="fas fa-cog mr-2"></i>管理员
                 </a>
+                <a href="#" onclick="showTab('bizreport')" id="nav-bizreport" class="block py-2.5 px-4 rounded-lg mb-1 hover:bg-gray-800 text-sm">
+                    <i class="fas fa-file-alt mr-2"></i>经营分析
+                </a>
             </nav>
             <div class="p-3 border-t border-gray-800">
                 <div id="sync-status" class="sync-badge sync-ok"><i class="fas fa-cloud"></i><span>数据已同步</span></div>
@@ -685,6 +688,76 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 经营分析 -->
+            <div id="bizreport-section" class="p-5 hidden">
+
+        <!-- 顶部操作栏 -->
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+                <h2 class="text-base font-bold text-gray-800"><i class="fas fa-file-alt mr-2 text-indigo-600"></i>月度经营分析报告</h2>
+                <input type="month" id="bizrpt-month" class="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-indigo-400" onchange="renderBizReport()">
+                <button onclick="bizRptSetCurrentMonth()" class="text-xs px-2 py-1 rounded border border-gray-300 text-gray-500 bg-white hover:bg-gray-50">当月</button>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="bizRptSaveData()" class="text-xs px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-700"><i class="fas fa-save mr-1"></i>保存数据</button>
+                <button onclick="exportBizReport()" class="text-xs px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-700"><i class="fas fa-file-pdf mr-1"></i>导出月报</button>
+            </div>
+        </div>
+
+        <!-- 主数据录入表 -->
+        <div class="card mb-5">
+            <div class="flex items-center justify-between px-4 pt-4 pb-2">
+                <h3 class="text-sm font-bold text-gray-700"><i class="fas fa-table mr-2 text-indigo-500"></i>项目经营数据 <span class="text-xs font-normal text-gray-400 ml-1">（双击单元格可直接编辑）</span></h3>
+                <button onclick="bizRptAddRow()" class="text-xs px-2 py-1 rounded border border-indigo-400 text-indigo-600 hover:bg-indigo-50"><i class="fas fa-plus mr-1"></i>新增行</button>
+            </div>
+            <div class="overflow-x-auto px-2 pb-4">
+                <table class="text-xs w-full" id="bizRptTable" style="min-width:1400px">
+                    <thead>
+                        <tr class="table-header-blue text-white text-center">
+                            <th class="py-2 px-2 whitespace-nowrap">类型</th>
+                            <th class="py-2 px-2 whitespace-nowrap">项目名称</th>
+                            <th class="py-2 px-2 whitespace-nowrap">上月发车</th>
+                            <th class="py-2 px-2 whitespace-nowrap">当月发车</th>
+                            <th class="py-2 px-2 whitespace-nowrap">车次变化</th>
+                            <th class="py-2 px-2 whitespace-nowrap">上月收入</th>
+                            <th class="py-2 px-2 whitespace-nowrap">当月收入</th>
+                            <th class="py-2 px-2 whitespace-nowrap">单趟均收</th>
+                            <th class="py-2 px-2 whitespace-nowrap">收入变化</th>
+                            <th class="py-2 px-2 whitespace-nowrap">上月支出</th>
+                            <th class="py-2 px-2 whitespace-nowrap">当月支出</th>
+                            <th class="py-2 px-2 whitespace-nowrap">支出变化</th>
+                            <th class="py-2 px-2 whitespace-nowrap">毛利</th>
+                            <th class="py-2 px-2 whitespace-nowrap">毛利率</th>
+                            <th class="py-2 px-2 whitespace-nowrap">司机运费</th>
+                            <th class="py-2 px-2 whitespace-nowrap">电补</th>
+                            <th class="py-2 px-2 whitespace-nowrap">高速费</th>
+                            <th class="py-2 px-2 whitespace-nowrap">车租</th>
+                            <th class="py-2 px-2 whitespace-nowrap">装卸费</th>
+                            <th class="py-2 px-2 whitespace-nowrap">平台服务费</th>
+                            <th class="py-2 px-2 whitespace-nowrap">在用车辆</th>
+                            <th class="py-2 px-2 whitespace-nowrap">实际运营</th>
+                            <th class="py-2 px-2 whitespace-nowrap">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bizRptBody"></tbody>
+                    <tfoot id="bizRptFoot"></tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- 图表区 -->
+        <div class="grid grid-cols-2 gap-4 mb-5">
+            <div class="card p-4">
+                <h4 class="text-xs text-gray-500 mb-2 font-semibold">收入与利润趋势</h4>
+                <canvas id="bizRptIncomeChart" height="200"></canvas>
+            </div>
+            <div class="card p-4">
+                <h4 class="text-xs text-gray-500 mb-2 font-semibold">成本结构占比</h4>
+                <canvas id="bizRptCostChart" height="200"></canvas>
+            </div>
+        </div>
+            </div><!-- end bizreport-section -->
         </main>
     </div>
 
@@ -825,6 +898,10 @@
         let pageSize = 100;
         let incomeChart = null, costChart = null, projectProfitChart = null, projectOrderChart = null;
         let bizIncomeChart = null, bizProfitChart = null, bizTripsChart = null, bizCostChart = null;
+        let bizRptIncomeChart = null, bizRptCostPieChart = null;
+        // 经营分析模块数据（按月份存储）
+        // bizReportData = { "2026-05": [ {type,name,lastTrips,trips,lastIncome,income,lastExpense,expense,driver,electric,toll,rent,loading,platform,inUse,operating}, ... ], ... }
+        let bizReportData = JSON.parse(localStorage.getItem('hengbing_bizreport') || '{}');
 
         // ====== 月度项目经营分析数据（从运单汇总实时计算）======
         // 项目分类配置
@@ -1109,18 +1186,19 @@
         });
 
         function showTab(tab) {
-            ['dashboard','orders','vehicles','admin'].forEach(t => {
+            ['dashboard','orders','vehicles','admin','bizreport'].forEach(t => {
                 document.getElementById(t+'-section').classList.add('hidden');
                 document.getElementById('nav-'+t).classList.remove('bg-blue-600');
             });
             document.getElementById(tab+'-section').classList.remove('hidden');
             document.getElementById('nav-'+tab).classList.add('bg-blue-600');
             document.getElementById('page-title').textContent = 
-                tab==='dashboard'?'运营概览':tab==='orders'?'运单汇总':tab==='vehicles'?'车辆运营':'管理员';
+                tab==='dashboard'?'运营概览':tab==='orders'?'运单汇总':tab==='vehicles'?'车辆运营':tab==='bizreport'?'经营分析':'管理员';
             if (tab==='dashboard') { updateDashboard(); renderBizAnalysis(); }
             if (tab==='orders') renderOrders();
             if (tab==='vehicles') { updateVehicleProjectFilter(); renderVehicleOps(); }
             if (tab==='admin') { renderProjects(); loadSystemName(); }
+            if (tab==='bizreport') { renderBizReport(); }
         }
 
         function updateProjectSelects() {
@@ -3395,6 +3473,400 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
             if (e.target === document.getElementById('importProjectModal')) closeImportModal();
             if (e.target === document.getElementById('widgetModal')) closeWidgetModal();
         }
+
+        // ========== 经营分析模块 ==========
+
+        // 获取当前选中月份
+        function bizRptGetMonth() {
+            const v = document.getElementById('bizrpt-month')?.value;
+            if (v) return v;
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+        }
+
+        // 设置为当月
+        function bizRptSetCurrentMonth() {
+            const now = new Date();
+            const m = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+            document.getElementById('bizrpt-month').value = m;
+            renderBizReport();
+        }
+
+        // 默认行模板（新增行时使用）
+        function bizRptDefaultRow(type='常温项目', name='') {
+            return { type, name, lastTrips:0, trips:0, lastIncome:0, income:0, lastExpense:0, expense:0, driver:0, electric:0, toll:0, rent:0, loading:0, platform:0, inUse:0, operating:0 };
+        }
+
+        // 新增行
+        function bizRptAddRow() {
+            const month = bizRptGetMonth();
+            if (!bizReportData[month]) bizReportData[month] = [];
+            bizReportData[month].push(bizRptDefaultRow());
+            renderBizReport();
+        }
+
+        // 删除行
+        function bizRptDeleteRow(idx) {
+            const month = bizRptGetMonth();
+            if (bizReportData[month]) bizReportData[month].splice(idx, 1);
+            renderBizReport();
+        }
+
+        // 保存数据到 localStorage
+        function bizRptSaveData() {
+            // 先从表格读取当前编辑值
+            bizRptReadTableValues();
+            localStorage.setItem('hengbing_bizreport', JSON.stringify(bizReportData));
+            showToast('经营分析数据已保存', 'success');
+        }
+
+        // 从表格 DOM 读取当前所有值写回数据
+        function bizRptReadTableValues() {
+            const month = bizRptGetMonth();
+            const rows = document.querySelectorAll('#bizRptBody tr');
+            const data = [];
+            rows.forEach((tr, i) => {
+                const cells = tr.querySelectorAll('td');
+                if (!cells.length) return;
+                const g = (sel) => { const el = tr.querySelector(sel); return el ? (parseFloat(el.value)||0) : 0; };
+                const gs = (sel) => { const el = tr.querySelector(sel); return el ? el.value : ''; };
+                data.push({
+                    type: gs('[data-field="type"]'),
+                    name: gs('[data-field="name"]'),
+                    lastTrips:  g('[data-field="lastTrips"]'),
+                    trips:      g('[data-field="trips"]'),
+                    lastIncome: g('[data-field="lastIncome"]'),
+                    income:     g('[data-field="income"]'),
+                    lastExpense:g('[data-field="lastExpense"]'),
+                    expense:    g('[data-field="expense"]'),
+                    driver:     g('[data-field="driver"]'),
+                    electric:   g('[data-field="electric"]'),
+                    toll:       g('[data-field="toll"]'),
+                    rent:       g('[data-field="rent"]'),
+                    loading:    g('[data-field="loading"]'),
+                    platform:   g('[data-field="platform"]'),
+                    inUse:      g('[data-field="inUse"]'),
+                    operating:  g('[data-field="operating"]'),
+                });
+            });
+            bizReportData[month] = data;
+        }
+
+        // 格式化变化（带颜色标识）
+        function bizRptFmtChange(cur, last) {
+            if (!last || last === 0) return '<span class="text-gray-400">-</span>';
+            const diff = ((cur - last) / Math.abs(last) * 100).toFixed(1);
+            const cls = cur >= last ? 'text-green-600' : 'text-red-600';
+            const sign = cur >= last ? '+' : '';
+            return `<span class="${cls}">${sign}${diff}%</span>`;
+        }
+
+        // 渲染经营分析表格
+        function renderBizReport() {
+            const month = bizRptGetMonth();
+            // 如当月无数据，从 projects 自动生成空行
+            if (!bizReportData[month] || bizReportData[month].length === 0) {
+                const { PROJECT_CATEGORIES } = window._bizConst || {};
+                bizReportData[month] = projects.map(p => {
+                    const cat = (typeof PROJECT_CATEGORIES !== 'undefined' && PROJECT_CATEGORIES[p]) ? PROJECT_CATEGORIES[p] : '常温项目';
+                    return bizRptDefaultRow(cat, p);
+                });
+            }
+            const rows = bizReportData[month];
+
+            // 渲染表头月份提示
+            const [y, mo] = month.split('-');
+            const lastMo = mo === '01' ? `${parseInt(y)-1}-12` : `${y}-${String(parseInt(mo)-1).padStart(2,'0')}`;
+            const [ly, lmo] = lastMo.split('-');
+
+            // 生成 tbody
+            const tbody = document.getElementById('bizRptBody');
+            if (!tbody) return;
+
+            const typeColors = { '常温项目':'bg-blue-100 text-blue-700', '冷链项目':'bg-cyan-100 text-cyan-700' };
+            const typeOptions = ['常温项目','冷链项目'].map(t => `<option value="${t}">${t}</option>`).join('');
+
+            tbody.innerHTML = rows.map((row, i) => {
+                const gross = row.income - row.expense;
+                const grossRate = row.income > 0 ? (gross/row.income*100).toFixed(1) : '0.0';
+                const avgIncome = row.trips > 0 ? (row.income/row.trips).toFixed(0) : '0';
+                const tc = typeColors[row.type] || 'bg-gray-100 text-gray-700';
+                const numInput = (field, val) => `<input type="number" data-field="${field}" value="${val||0}" class="w-20 text-right border-b border-gray-300 bg-transparent focus:outline-none focus:border-indigo-400 text-xs" onchange="bizRptOnChange(${i}, '${field}', this.value)">`;
+                const txtInput = (field, val) => `<input type="text" data-field="${field}" value="${val||''}" class="w-24 border-b border-gray-300 bg-transparent focus:outline-none focus:border-indigo-400 text-xs" onchange="bizRptOnChange(${i}, '${field}', this.value)">`;
+                const selInput = (field, val) => `<select data-field="${field}" class="text-xs border-b border-gray-300 bg-transparent focus:outline-none" onchange="bizRptOnChange(${i}, '${field}', this.value)">${['常温项目','冷链项目'].map(t=>`<option value="${t}"${t===val?' selected':''}>${t}</option>`).join('')}</select>`;
+                return `<tr class="border-b border-gray-100 hover:bg-gray-50">
+                    <td class="py-1 px-2">${selInput('type', row.type)}</td>
+                    <td class="py-1 px-2">${txtInput('name', row.name)}</td>
+                    <td class="py-1 px-2 text-right">${numInput('lastTrips', row.lastTrips)}</td>
+                    <td class="py-1 px-2 text-right">${numInput('trips', row.trips)}</td>
+                    <td class="py-1 px-2 text-center">${bizRptFmtChange(row.trips, row.lastTrips)}</td>
+                    <td class="py-1 px-2 text-right">${numInput('lastIncome', row.lastIncome)}</td>
+                    <td class="py-1 px-2 text-right">${numInput('income', row.income)}</td>
+                    <td class="py-1 px-2 text-right text-gray-500">${avgIncome}</td>
+                    <td class="py-1 px-2 text-center">${bizRptFmtChange(row.income, row.lastIncome)}</td>
+                    <td class="py-1 px-2 text-right">${numInput('lastExpense', row.lastExpense)}</td>
+                    <td class="py-1 px-2 text-right">${numInput('expense', row.expense)}</td>
+                    <td class="py-1 px-2 text-center">${bizRptFmtChange(row.expense, row.lastExpense)}</td>
+                    <td class="py-1 px-2 text-right font-semibold ${gross>=0?'text-green-700':'text-red-600'}">${gross.toLocaleString()}</td>
+                    <td class="py-1 px-2 text-right font-semibold ${parseFloat(grossRate)>=0?'text-green-700':'text-red-600'}">${grossRate}%</td>
+                    <td class="py-1 px-2 text-right">${numInput('driver', row.driver)}</td>
+                    <td class="py-1 px-2 text-right">${numInput('electric', row.electric)}</td>
+                    <td class="py-1 px-2 text-right">${numInput('toll', row.toll)}</td>
+                    <td class="py-1 px-2 text-right">${numInput('rent', row.rent)}</td>
+                    <td class="py-1 px-2 text-right">${numInput('loading', row.loading)}</td>
+                    <td class="py-1 px-2 text-right">${numInput('platform', row.platform)}</td>
+                    <td class="py-1 px-2 text-right">${numInput('inUse', row.inUse)}</td>
+                    <td class="py-1 px-2 text-right">${numInput('operating', row.operating)}</td>
+                    <td class="py-1 px-2 text-center"><button onclick="bizRptDeleteRow(${i})" class="text-red-400 hover:text-red-600 text-xs"><i class="fas fa-trash"></i></button></td>
+                </tr>`;
+            }).join('');
+
+            // 合计行
+            const sum = (k) => rows.reduce((a,r) => a+(parseFloat(r[k])||0), 0);
+            const tIncome = sum('income'), tLastIncome = sum('lastIncome');
+            const tExpense = sum('expense'), tLastExpense = sum('lastExpense');
+            const tTrips = sum('trips'), tLastTrips = sum('lastTrips');
+            const tGross = tIncome - tExpense;
+            const tRate = tIncome > 0 ? (tGross/tIncome*100).toFixed(1) : '0.0';
+            const tfoot = document.getElementById('bizRptFoot');
+            if (tfoot) tfoot.innerHTML = `<tr class="bg-gray-100 font-semibold border-t-2 border-gray-300">
+                <td colspan="2" class="py-2 px-2 text-center">合计</td>
+                <td class="py-2 px-2 text-right">${tLastTrips}</td>
+                <td class="py-2 px-2 text-right">${tTrips}</td>
+                <td class="py-2 px-2 text-center">${bizRptFmtChange(tTrips, tLastTrips)}</td>
+                <td class="py-2 px-2 text-right">${tLastIncome.toLocaleString()}</td>
+                <td class="py-2 px-2 text-right">${tIncome.toLocaleString()}</td>
+                <td class="py-2 px-2 text-right">${tTrips>0?(tIncome/tTrips).toFixed(0):0}</td>
+                <td class="py-2 px-2 text-center">${bizRptFmtChange(tIncome, tLastIncome)}</td>
+                <td class="py-2 px-2 text-right">${tLastExpense.toLocaleString()}</td>
+                <td class="py-2 px-2 text-right">${tExpense.toLocaleString()}</td>
+                <td class="py-2 px-2 text-center">${bizRptFmtChange(tExpense, tLastExpense)}</td>
+                <td class="py-2 px-2 text-right ${tGross>=0?'text-green-700':'text-red-600'}">${tGross.toLocaleString()}</td>
+                <td class="py-2 px-2 text-right ${parseFloat(tRate)>=0?'text-green-700':'text-red-600'}">${tRate}%</td>
+                <td class="py-2 px-2 text-right">${sum('driver').toLocaleString()}</td>
+                <td class="py-2 px-2 text-right">${sum('electric').toLocaleString()}</td>
+                <td class="py-2 px-2 text-right">${sum('toll').toLocaleString()}</td>
+                <td class="py-2 px-2 text-right">${sum('rent').toLocaleString()}</td>
+                <td class="py-2 px-2 text-right">${sum('loading').toLocaleString()}</td>
+                <td class="py-2 px-2 text-right">${sum('platform').toLocaleString()}</td>
+                <td class="py-2 px-2 text-right">${sum('inUse')}</td>
+                <td class="py-2 px-2 text-right">${sum('operating')}</td>
+                <td></td>
+            </tr>`;
+
+            // 渲染图表
+            bizRptRenderCharts(rows);
+        }
+
+        // 输入框变更时实时更新内存数据并刷新计算列
+        function bizRptOnChange(idx, field, val) {
+            const month = bizRptGetMonth();
+            if (!bizReportData[month] || !bizReportData[month][idx]) return;
+            bizReportData[month][idx][field] = isNaN(parseFloat(val)) ? val : parseFloat(val);
+            // 只刷新合计行和计算列，不重新渲染整表（避免光标丢失）
+            bizRptRefreshCalc(idx);
+        }
+
+        // 刷新计算列（毛利、毛利率、单趟均收、变化率）和合计行
+        function bizRptRefreshCalc(idx) {
+            const month = bizRptGetMonth();
+            const rows = bizReportData[month] || [];
+            const tr = document.querySelectorAll('#bizRptBody tr')[idx];
+            if (!tr) return;
+            const row = rows[idx];
+            const gross = (row.income||0) - (row.expense||0);
+            const grossRate = row.income > 0 ? (gross/row.income*100).toFixed(1) : '0.0';
+            const avgIncome = row.trips > 0 ? (row.income/row.trips).toFixed(0) : '0';
+            const tds = tr.querySelectorAll('td');
+            // col indices: 0=type,1=name,2=lastTrips,3=trips,4=change,5=lastIncome,6=income,7=avg,8=incChange,9=lastExpense,10=expense,11=expChange,12=gross,13=grossRate,...
+            tds[4].innerHTML = bizRptFmtChange(row.trips, row.lastTrips);
+            tds[7].textContent = avgIncome;
+            tds[8].innerHTML = bizRptFmtChange(row.income, row.lastIncome);
+            tds[11].innerHTML = bizRptFmtChange(row.expense, row.lastExpense);
+            tds[12].className = `py-1 px-2 text-right font-semibold ${gross>=0?'text-green-700':'text-red-600'}`;
+            tds[12].textContent = gross.toLocaleString();
+            tds[13].className = `py-1 px-2 text-right font-semibold ${parseFloat(grossRate)>=0?'text-green-700':'text-red-600'}`;
+            tds[13].textContent = grossRate + '%';
+            // 更新合计行
+            const sum = (k) => rows.reduce((a,r) => a+(parseFloat(r[k])||0), 0);
+            const tIncome = sum('income'), tLastIncome = sum('lastIncome');
+            const tExpense = sum('expense'), tLastExpense = sum('lastExpense');
+            const tTrips = sum('trips'), tLastTrips = sum('lastTrips');
+            const tGross = tIncome - tExpense;
+            const tRate = tIncome > 0 ? (tGross/tIncome*100).toFixed(1) : '0.0';
+            const ftds = document.querySelectorAll('#bizRptFoot tr td');
+            if (ftds.length > 13) {
+                ftds[2].textContent = tLastTrips;
+                ftds[3].textContent = tTrips;
+                ftds[4].innerHTML = bizRptFmtChange(tTrips, tLastTrips);
+                ftds[5].textContent = tLastIncome.toLocaleString();
+                ftds[6].textContent = tIncome.toLocaleString();
+                ftds[7].textContent = tTrips>0?(tIncome/tTrips).toFixed(0):0;
+                ftds[8].innerHTML = bizRptFmtChange(tIncome, tLastIncome);
+                ftds[9].textContent = tLastExpense.toLocaleString();
+                ftds[10].textContent = tExpense.toLocaleString();
+                ftds[11].innerHTML = bizRptFmtChange(tExpense, tLastExpense);
+                ftds[12].className = `py-2 px-2 text-right ${tGross>=0?'text-green-700':'text-red-600'}`;
+                ftds[12].textContent = tGross.toLocaleString();
+                ftds[13].className = `py-2 px-2 text-right ${parseFloat(tRate)>=0?'text-green-700':'text-red-600'}`;
+                ftds[13].textContent = tRate + '%';
+            }
+        }
+
+        // 渲染经营分析图表
+        function bizRptRenderCharts(rows) {
+            // 收入与利润柱状图
+            const names = rows.map(r => r.name || '未命名');
+            const incomes = rows.map(r => r.income || 0);
+            const grosses = rows.map(r => (r.income||0)-(r.expense||0));
+            if (bizRptIncomeChart) bizRptIncomeChart.destroy();
+            const c1 = document.getElementById('bizRptIncomeChart');
+            if (c1) {
+                bizRptIncomeChart = new Chart(c1, {
+                    type: 'bar',
+                    data: {
+                        labels: names,
+                        datasets: [
+                            { label: '收入', data: incomes, backgroundColor: '#6366f1', borderRadius: 3 },
+                            { label: '毛利', data: grosses, backgroundColor: '#10b981', borderRadius: 3 }
+                        ]
+                    },
+                    options: { responsive:true, plugins:{ legend:{ labels:{ font:{ size:11 } } } }, scales:{ y:{ ticks:{ font:{ size:10 } } }, x:{ ticks:{ font:{ size:10 } } } } }
+                });
+            }
+            // 成本结构饼图（合计）
+            const totalDriver   = rows.reduce((a,r)=>a+(r.driver||0),0);
+            const totalElectric = rows.reduce((a,r)=>a+(r.electric||0),0);
+            const totalToll     = rows.reduce((a,r)=>a+(r.toll||0),0);
+            const totalRent     = rows.reduce((a,r)=>a+(r.rent||0),0);
+            const totalLoading  = rows.reduce((a,r)=>a+(r.loading||0),0);
+            const totalPlatform = rows.reduce((a,r)=>a+(r.platform||0),0);
+            if (bizRptCostPieChart) bizRptCostPieChart.destroy();
+            const c2 = document.getElementById('bizRptCostChart');
+            if (c2) {
+                bizRptCostPieChart = new Chart(c2, {
+                    type: 'pie',
+                    data: {
+                        labels: ['司机运费','电补','高速费','车租','装卸费','平台服务费'],
+                        datasets: [{ data: [totalDriver,totalElectric,totalToll,totalRent,totalLoading,totalPlatform],
+                            backgroundColor: ['#9f1239','#3b82f6','#10b981','#f97316','#8b5cf6','#9ca3af'] }]
+                    },
+                    options: { responsive:true, plugins:{ legend:{ position:'right', labels:{ font:{ size:10 }, boxWidth:12 } } } }
+                });
+            }
+        }
+
+        // 导出经营分析月报（HTML打印版）
+        async function exportBizReport() {
+            bizRptReadTableValues();
+            const month = bizRptGetMonth();
+            const rows = bizReportData[month] || [];
+            if (!rows.length) { showToast('当月暂无数据，请先填写', 'warn'); return; }
+            const [y, mo] = month.split('-');
+            const title = `${y}年${parseInt(mo)}月经营分析报告`;
+            const sum = (k) => rows.reduce((a,r)=>a+(parseFloat(r[k])||0),0);
+            const tIncome = sum('income'), tExpense = sum('expense'), tTrips = sum('trips');
+            const tGross = tIncome - tExpense;
+            const tRate = tIncome > 0 ? (tGross/tIncome*100).toFixed(1) : '0.0';
+            const fmtN = (n) => (n||0).toLocaleString('zh-CN',{maximumFractionDigits:0});
+            const chg = (cur,last) => {
+                if (!last) return '-';
+                const d = ((cur-last)/Math.abs(last)*100).toFixed(1);
+                return `<span style="color:${cur>=last?'#059669':'#dc2626'}">${cur>=last?'+':''}${d}%</span>`;
+            };
+            const typeColor = { '常温项目': '#1d4ed8', '冷链项目': '#0891b2' };
+            const tableRows = rows.map(r => {
+                const g = (r.income||0)-(r.expense||0);
+                const gr = r.income>0?(g/r.income*100).toFixed(1):0;
+                const tc = typeColor[r.type]||'#374151';
+                return `<tr>
+                    <td style="color:${tc};font-weight:600">${r.type}</td>
+                    <td>${r.name}</td>
+                    <td>${r.lastTrips||0}</td><td>${r.trips||0}</td><td>${chg(r.trips,r.lastTrips)}</td>
+                    <td>${fmtN(r.lastIncome)}</td><td>${fmtN(r.income)}</td>
+                    <td>${r.trips>0?fmtN(r.income/r.trips):0}</td><td>${chg(r.income,r.lastIncome)}</td>
+                    <td>${fmtN(r.lastExpense)}</td><td>${fmtN(r.expense)}</td><td>${chg(r.expense,r.lastExpense)}</td>
+                    <td style="color:${g>=0?'#059669':'#dc2626'};font-weight:700">${fmtN(g)}</td>
+                    <td style="color:${parseFloat(gr)>=0?'#059669':'#dc2626'};font-weight:700">${gr}%</td>
+                    <td>${fmtN(r.driver)}</td><td>${fmtN(r.electric)}</td><td>${fmtN(r.toll)}</td>
+                    <td>${fmtN(r.rent)}</td><td>${fmtN(r.loading)}</td><td>${fmtN(r.platform)}</td>
+                    <td>${r.inUse||0}</td><td>${r.operating||0}</td>
+                </tr>`;
+            }).join('');
+            // 获取图表截图
+            const getB64 = (id) => { try { return document.getElementById(id)?.toDataURL('image/png')||''; } catch(e){ return ''; } };
+            const b64Income = getB64('bizRptIncomeChart');
+            const b64Cost   = getB64('bizRptCostChart');
+            const html = `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
+            <title>合同物流 · 月度经营分析报告</title>
+            <style>
+                *{margin:0;padding:0;box-sizing:border-box}
+                body{font-family:'Microsoft YaHei',Arial,sans-serif;font-size:12px;background:#fff;color:#1f2937;padding:20px}
+                .report-header{text-align:center;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #1d4ed8}
+                .report-header h1{font-size:20px;font-weight:700;color:#1d4ed8}
+                .report-header p{color:#6b7280;font-size:11px;margin-top:4px}
+                .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px}
+                .kpi-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px;text-align:center}
+                .kpi-card .label{font-size:10px;color:#6b7280;margin-bottom:4px}
+                .kpi-card .value{font-size:16px;font-weight:700;color:#1d4ed8}
+                .section-title{font-size:13px;font-weight:700;color:#1d4ed8;margin:16px 0 8px;padding-left:8px;border-left:3px solid #1d4ed8}
+                table{width:100%;border-collapse:collapse;font-size:10px}
+                th{background:#1d4ed8;color:#fff;padding:5px 4px;text-align:center;white-space:nowrap}
+                td{padding:4px;border-bottom:1px solid #f1f5f9;text-align:center;white-space:nowrap}
+                tr:nth-child(even) td{background:#f9fafb}
+                .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px}
+                .chart-box{border:1px solid #e5e7eb;border-radius:6px;padding:12px}
+                .chart-box h4{font-size:11px;color:#6b7280;margin-bottom:8px;font-weight:600}
+                .chart-box img{width:100%;height:auto}
+                @media print{body{padding:10px}}
+            </style></head><body>
+            <div class="report-header">
+                <h1>合同物流 · 月度经营分析报告</h1>
+                <p>${title} &nbsp;|&nbsp; 导出时间：${new Date().toLocaleString('zh-CN')}</p>
+            </div>
+            <div class="kpi-grid">
+                <div class="kpi-card"><div class="label">总发车次</div><div class="value">${tTrips}</div></div>
+                <div class="kpi-card"><div class="label">总收入（元）</div><div class="value" style="color:#1d4ed8">${fmtN(tIncome)}</div></div>
+                <div class="kpi-card"><div class="label">总支出（元）</div><div class="value" style="color:#dc2626">${fmtN(tExpense)}</div></div>
+                <div class="kpi-card"><div class="label">总毛利（元）</div><div class="value" style="color:${tGross>=0?'#059669':'#dc2626'}">${fmtN(tGross)}</div></div>
+                <div class="kpi-card"><div class="label">综合毛利率</div><div class="value" style="color:${parseFloat(tRate)>=0?'#059669':'#dc2626'}">${tRate}%</div></div>
+            </div>
+            <div class="section-title">项目经营明细</div>
+            <table>
+                <thead><tr>
+                    <th>类型</th><th>项目</th><th>上月发车</th><th>当月发车</th><th>车次变化</th>
+                    <th>上月收入</th><th>当月收入</th><th>单趟均收</th><th>收入变化</th>
+                    <th>上月支出</th><th>当月支出</th><th>支出变化</th>
+                    <th>毛利</th><th>毛利率</th>
+                    <th>司机运费</th><th>电补</th><th>高速费</th><th>车租</th><th>装卸费</th><th>平台服务费</th>
+                    <th>在用车</th><th>运营车</th>
+                </tr></thead>
+                <tbody>${tableRows}</tbody>
+                <tfoot><tr style="background:#f1f5f9;font-weight:700">
+                    <td colspan="2">合计</td>
+                    <td>${sum('lastTrips')}</td><td>${tTrips}</td><td>-</td>
+                    <td>${fmtN(sum('lastIncome'))}</td><td>${fmtN(tIncome)}</td><td>${tTrips>0?fmtN(tIncome/tTrips):0}</td><td>-</td>
+                    <td>${fmtN(sum('lastExpense'))}</td><td>${fmtN(tExpense)}</td><td>-</td>
+                    <td style="color:${tGross>=0?'#059669':'#dc2626'}">${fmtN(tGross)}</td>
+                    <td style="color:${parseFloat(tRate)>=0?'#059669':'#dc2626'}">${tRate}%</td>
+                    <td>${fmtN(sum('driver'))}</td><td>${fmtN(sum('electric'))}</td><td>${fmtN(sum('toll'))}</td>
+                    <td>${fmtN(sum('rent'))}</td><td>${fmtN(sum('loading'))}</td><td>${fmtN(sum('platform'))}</td>
+                    <td>${sum('inUse')}</td><td>${sum('operating')}</td>
+                </tr></tfoot>
+            </table>
+            ${(b64Income||b64Cost)?`
+            <div class="section-title">图表分析</div>
+            <div class="chart-grid">
+                ${b64Income?`<div class="chart-box"><h4>收入与毛利（元）</h4><img src="${b64Income}"/></div>`:''}
+                ${b64Cost?`<div class="chart-box"><h4>成本结构占比</h4><img src="${b64Cost}"/></div>`:''}
+            </div>`:''}
+            </body></html>`;
+            const w = window.open('','_blank','width=1200,height=800');
+            w.document.write(html);
+            w.document.close();
+        }
+
+        // ========== END 经营分析模块 ==========
 
     </script>
 </body>
