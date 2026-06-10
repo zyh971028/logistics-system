@@ -750,7 +750,7 @@
         <!-- 图表区 -->
         <div class="grid grid-cols-2 gap-4 mb-5">
             <div class="card p-4">
-                <h4 class="text-xs text-gray-500 mb-2 font-semibold">收入与利润（元）</h4>
+                <h4 class="text-xs text-gray-500 mb-2 font-semibold">收入·支出·毛利率</h4>
                 <canvas id="bizRptIncomeChart" height="180"></canvas>
             </div>
             <div class="card p-4">
@@ -3725,26 +3725,41 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
             }
         }
 
-        // 绘制柱状图数值标签（收入与毛利）
-        function drawBarLabels(chart, ctx) {
+        // 绘制组合图数值标签（收入/支出柱状 + 毛利率折线）
+        function drawComboLabels(chart, ctx) {
             chart.data.datasets.forEach((ds, di) => {
                 const meta = chart.getDatasetMeta(di);
-                meta.data.forEach((bar, i) => {
-                    const val = ds.data[i];
-                    if (!val && val !== 0) return;
-                    const text = val >= 10000 ? (val/10000).toFixed(1) + 'w' : val.toLocaleString('zh-CN');
-                    ctx.save();
-                    ctx.font = 'bold 11px sans-serif';
-                    ctx.fillStyle = di === 0 ? '#6366f1' : (val >= 0 ? '#059669' : '#dc2626');
-                    ctx.textAlign = 'center';
-                    const x = bar.x;
-                    const y = val >= 0 ? bar.y - 5 : bar.y + 14;
-                    ctx.fillText(text, x, y);
-                    ctx.restore();
-                });
+                if (ds.type === 'line' || meta.type === 'line') {
+                    // 毛利率折线标签
+                    meta.data.forEach((pt, i) => {
+                        const val = ds.data[i];
+                        if (val === null || val === undefined) return;
+                        ctx.save();
+                        ctx.font = 'bold 10px sans-serif';
+                        ctx.fillStyle = '#059669';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+                        ctx.fillText(val.toFixed(1) + '%', pt.x, pt.y - 8);
+                        ctx.restore();
+                    });
+                } else {
+                    // 柱状标签
+                    meta.data.forEach((bar, i) => {
+                        const val = ds.data[i];
+                        if (!val && val !== 0) return;
+                        const text = val >= 10000 ? (val/10000).toFixed(1) + 'w' : val.toLocaleString('zh-CN');
+                        ctx.save();
+                        ctx.font = 'bold 10px sans-serif';
+                        ctx.fillStyle = di === 0 ? '#6366f1' : '#f97316';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+                        ctx.fillText(text, bar.x, bar.y - 2);
+                        ctx.restore();
+                    });
+                }
             });
         }
-        // 绘制饼图百分比标签
+        // 绘制饼图标签（名称 + 百分比）
         function drawPieLabels(chart, ctx) {
             const ds = chart.data.datasets[0];
             const total = ds.data.reduce((a,v)=>a+v,0);
@@ -3760,13 +3775,20 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                 const y = arc.y + Math.sin(mid) * r;
                 const pct = (val / total * 100).toFixed(1) + '%';
                 ctx.save();
-                ctx.font = 'bold 11px sans-serif';
-                ctx.fillStyle = '#fff';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.shadowColor = 'rgba(0,0,0,0.4)';
-                ctx.shadowBlur = 3;
-                ctx.fillText(pct, x, y);
+                // 名称行（上方）
+                ctx.font = 'bold 10px sans-serif';
+                ctx.fillStyle = '#1f2937';
+                ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+                ctx.lineWidth = 3;
+                ctx.strokeText(label, x, y - 8);
+                ctx.fillText(label, x, y - 8);
+                // 百分比行（下方）
+                ctx.font = 'bold 13px sans-serif';
+                ctx.fillStyle = '#1f2937';
+                ctx.strokeText(pct, x, y + 8);
+                ctx.fillText(pct, x, y + 8);
                 ctx.restore();
             });
         }
@@ -3792,9 +3814,10 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
         function bizRptRenderCharts(rows) {
             const names = rows.map(r => r.name || '未命名');
 
-            // 1. 收入与利润柱状图
+            // 1. 收入·支出·毛利率组合图（收入/支出柱状 + 毛利率折线）
             const incomes = rows.map(r => r.income || 0);
-            const grosses = rows.map(r => (r.income||0)-(r.expense||0));
+            const expenses = rows.map(r => r.expense || 0);
+            const marginRates = rows.map((r, i) => incomes[i] > 0 ? ((incomes[i] - expenses[i]) / incomes[i] * 100) : 0);
             if (bizRptIncomeChart) bizRptIncomeChart.destroy();
             const c1 = document.getElementById('bizRptIncomeChart');
             if (c1) {
@@ -3803,22 +3826,32 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                     data: {
                         labels: names,
                         datasets: [
-                            { label: '收入', data: incomes, backgroundColor: '#6366f1', borderRadius: 3 },
-                            { label: '毛利', data: grosses, backgroundColor: '#10b981', borderRadius: 3 }
+                            { label: '收入', data: incomes, backgroundColor: '#6366f1', borderRadius: 3, order: 2 },
+                            { label: '支出', data: expenses, backgroundColor: '#f97316', borderRadius: 3, order: 2 },
+                            { label: '毛利率', data: marginRates, type: 'line', borderColor: '#059669', backgroundColor: 'rgba(5,150,105,0.08)',
+                              borderWidth: 2.5, pointRadius: 4, pointBackgroundColor: '#059669', tension: 0.3,
+                              yAxisID: 'y1', order: 1, fill: true }
                         ]
                     },
                     options: {
                         responsive:true,
+                        interaction: { mode: 'index', intersect: false },
                         plugins:{
                             legend:{ labels:{ font:{ size:11 } } },
                             tooltip:{
                                 callbacks:{
-                                    label: (c) => c.dataset.label + ': ' + c.parsed.y.toLocaleString('zh-CN') + '元'
+                                    label: (c) => {
+                                        if (c.datasetIndex === 2) return c.dataset.label + ': ' + c.parsed.y.toFixed(1) + '%';
+                                        return c.dataset.label + ': ' + c.parsed.y.toLocaleString('zh-CN') + '元';
+                                    }
                                 }
                             }
                         },
-                        scales:{ y:{ ticks:{ font:{ size:10 }, callback:(v)=>v>=10000?(v/10000)+'w':v } }, x:{ ticks:{ font:{ size:10 } } } },
-                        animation: { onComplete: function() { drawBarLabels(this, this.ctx); } }
+                        scales:{
+                            y: { position:'left', title:{ display:true, text:'金额（元）', font:{ size:10 } }, ticks:{ font:{ size:10 }, callback:(v)=>v>=10000?(v/10000)+'w':v } },
+                            y1: { position:'right', title:{ display:true, text:'毛利率', font:{ size:10 } }, ticks:{ font:{ size:10 }, callback:(v)=>v+'%' }, grid:{ drawOnChartArea:false }, min:0 }
+                        },
+                        animation: { onComplete: function() { drawComboLabels(this, this.ctx); } }
                     }
                 });
             }
@@ -3838,7 +3871,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                     data: {
                         labels: ['司机运费','电补','高速费','车租','装卸费','平台服务费'],
                         datasets: [{ data: [totalDriver,totalElectric,totalToll,totalRent,totalLoading,totalPlatform],
-                            backgroundColor: ['#9f1239','#3b82f6','#10b981','#f97316','#8b5cf6','#9ca3af'] }]
+                            backgroundColor: ['#9f1239','#3b82f6','#10b981','#f97316','#8b5cf6','#f59e0b'] }]
                     },
                     options: {
                         responsive:true,
@@ -3952,6 +3985,14 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
             if (currentRows.length) {
                 bizRptRenderCharts(currentRows);
                 await new Promise(r => setTimeout(r, 600));
+                // 手动绘制标签确保 toDataURL 能捕获（animation.onComplete 在导出场景可能未触发）
+                const charts = [
+                    { c: bizRptIncomeChart,      fn: drawComboLabels },
+                    { c: bizRptCostPieChart,     fn: drawPieLabels },
+                    { c: bizRptTripsLineChart,   fn: drawLineLabels },
+                    { c: bizRptIncomePieChart,   fn: drawPieLabels }
+                ];
+                charts.forEach(({c, fn}) => { if (c) { const c2 = c.ctx; c2 && fn(c, c2); } });
             }
             // 获取图表截图
             const getB64 = (id) => { try { return document.getElementById(id)?.toDataURL('image/png')||''; } catch(e){ return ''; } };
@@ -4025,7 +4066,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
             ${(b64Income||b64Cost||b64Trips||b64IncPie)?`
             <div class="section-title">图表分析</div>
             <div class="chart-grid">
-                ${b64Income?`<div class="chart-box"><h4>收入与毛利（元）</h4><img src="${b64Income}"/></div>`:''}
+                ${b64Income?`<div class="chart-box"><h4>收入·支出·毛利率</h4><img src="${b64Income}"/></div>`:''}
                 ${b64Cost?`<div class="chart-box"><h4>成本结构占比</h4><img src="${b64Cost}"/></div>`:''}
                 ${b64Trips?`<div class="chart-box"><h4>车次变化（本月 vs 上月）</h4><img src="${b64Trips}"/></div>`:''}
                 ${b64IncPie?`<div class="chart-box"><h4>各项目收入占比</h4><img src="${b64IncPie}"/></div>`:''}
