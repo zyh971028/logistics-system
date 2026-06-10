@@ -3794,6 +3794,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                     <td style="color:${parseFloat(gr)>=0?'#059669':'#dc2626'};font-weight:700">${gr}%</td>
                     <td>${fmtN(r.driver)}</td><td>${fmtN(r.electric)}</td><td>${fmtN(r.toll)}</td>
                     <td>${fmtN(r.rent)}</td><td>${fmtN(r.loading)}</td><td>${fmtN(r.platform)}</td>
+                    <td>${fmtN(r.personnel)}</td>
                     <td>${r.inUse||0}</td><td>${r.operating||0}</td>
                 </tr>`;
             }).join('');
@@ -3808,7 +3809,9 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                 body{font-family:'Microsoft YaHei',Arial,sans-serif;font-size:12px;background:#fff;color:#1f2937;padding:20px}
                 .report-header{text-align:center;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #1d4ed8}
                 .report-header h1{font-size:20px;font-weight:700;color:#1d4ed8}
-                .report-header p{color:#6b7280;font-size:11px;margin-top:4px}
+                .editable-subtitle{display:inline-block;color:#6b7280;font-size:11px;margin-top:6px;border:none;outline:none;text-align:center;min-width:320px;background:transparent;cursor:text}
+                .editable-subtitle:focus{border-bottom:1px dashed #1d4ed8}
+                .print-hint{font-size:10px;color:#9ca3af;margin-top:4px;display:block}
                 .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px}
                 .kpi-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:10px;text-align:center}
                 .kpi-card .label{font-size:10px;color:#6b7280;margin-bottom:4px}
@@ -3822,11 +3825,14 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                 .chart-box{border:1px solid #e5e7eb;border-radius:6px;padding:12px}
                 .chart-box h4{font-size:11px;color:#6b7280;margin-bottom:8px;font-weight:600}
                 .chart-box img{width:100%;height:auto}
-                @media print{body{padding:10px}}
+                @media print{body{padding:10px}.print-hint{display:none!important}.editable-subtitle{border-bottom:none!important}}
             </style></head><body>
             <div class="report-header">
                 <h1>合同物流 · 月度经营分析报告</h1>
-                <p>${title} &nbsp;|&nbsp; 导出时间：${new Date().toLocaleString('zh-CN')}</p>
+                <div>
+                    <input class="editable-subtitle" id="rpt-subtitle" value="${title}" title="点击可编辑日期">
+                    <span class="print-hint">↑ 点击可修改日期，修改后再打印/另存为PDF</span>
+                </div>
             </div>
             <div class="kpi-grid">
                 <div class="kpi-card"><div class="label">总发车次</div><div class="value">${tTrips}</div></div>
@@ -3842,7 +3848,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                     <th>上月收入</th><th>当月收入</th><th>单趟均收</th><th>收入变化</th>
                     <th>上月支出</th><th>当月支出</th><th>支出变化</th>
                     <th>毛利</th><th>毛利率</th>
-                    <th>司机运费</th><th>电补</th><th>高速费</th><th>车租</th><th>装卸费</th><th>平台服务费</th>
+                    <th>司机运费</th><th>电补</th><th>高速费</th><th>车租</th><th>装卸费</th><th>平台服务费</th><th>人员成本</th>
                     <th>在用车</th><th>运营车</th>
                 </tr></thead>
                 <tbody>${tableRows}</tbody>
@@ -3855,6 +3861,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                     <td style="color:${parseFloat(tRate)>=0?'#059669':'#dc2626'}">${tRate}%</td>
                     <td>${fmtN(sum('driver'))}</td><td>${fmtN(sum('electric'))}</td><td>${fmtN(sum('toll'))}</td>
                     <td>${fmtN(sum('rent'))}</td><td>${fmtN(sum('loading'))}</td><td>${fmtN(sum('platform'))}</td>
+                    <td>${fmtN(sum('personnel'))}</td>
                     <td>${sum('inUse')}</td><td>${sum('operating')}</td>
                 </tr></tfoot>
             </table>
