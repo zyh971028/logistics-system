@@ -735,6 +735,7 @@
                             <th class="py-2 px-2 whitespace-nowrap">车租</th>
                             <th class="py-2 px-2 whitespace-nowrap">装卸费</th>
                             <th class="py-2 px-2 whitespace-nowrap">平台服务费</th>
+                            <th class="py-2 px-2 whitespace-nowrap">项目人员成本</th>
                             <th class="py-2 px-2 whitespace-nowrap">在用车辆</th>
                             <th class="py-2 px-2 whitespace-nowrap">实际运营</th>
                             <th class="py-2 px-2 whitespace-nowrap">操作</th>
@@ -3494,7 +3495,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
 
         // 默认行模板（新增行时使用）
         function bizRptDefaultRow(type='常温项目', name='') {
-            return { type, name, lastTrips:0, trips:0, lastIncome:0, income:0, lastExpense:0, expense:0, driver:0, electric:0, toll:0, rent:0, loading:0, platform:0, inUse:0, operating:0 };
+            return { type, name, lastTrips:0, trips:0, lastIncome:0, income:0, lastExpense:0, expense:0, driver:0, electric:0, toll:0, rent:0, loading:0, platform:0, personnel:0, inUse:0, operating:0 };
         }
 
         // 新增行
@@ -3545,6 +3546,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                     rent:       g('[data-field="rent"]'),
                     loading:    g('[data-field="loading"]'),
                     platform:   g('[data-field="platform"]'),
+                    personnel:  g('[data-field="personnel"]'),
                     inUse:      g('[data-field="inUse"]'),
                     operating:  g('[data-field="operating"]'),
                 });
@@ -3615,6 +3617,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                     <td class="py-1 px-2 text-right">${numInput('rent', row.rent)}</td>
                     <td class="py-1 px-2 text-right">${numInput('loading', row.loading)}</td>
                     <td class="py-1 px-2 text-right">${numInput('platform', row.platform)}</td>
+                    <td class="py-1 px-2 text-right">${numInput('personnel', row.personnel)}</td>
                     <td class="py-1 px-2 text-right">${numInput('inUse', row.inUse)}</td>
                     <td class="py-1 px-2 text-right">${numInput('operating', row.operating)}</td>
                     <td class="py-1 px-2 text-center"><button onclick="bizRptDeleteRow(${i})" class="text-red-400 hover:text-red-600 text-xs"><i class="fas fa-trash"></i></button></td>
@@ -3649,6 +3652,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                 <td class="py-2 px-2 text-right">${sum('rent').toLocaleString()}</td>
                 <td class="py-2 px-2 text-right">${sum('loading').toLocaleString()}</td>
                 <td class="py-2 px-2 text-right">${sum('platform').toLocaleString()}</td>
+                <td class="py-2 px-2 text-right">${sum('personnel').toLocaleString()}</td>
                 <td class="py-2 px-2 text-right">${sum('inUse')}</td>
                 <td class="py-2 px-2 text-right">${sum('operating')}</td>
                 <td></td>
