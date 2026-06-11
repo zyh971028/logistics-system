@@ -749,23 +749,23 @@
             </div>
         </div>
 
-        <!-- 图表区 -->
+        <!-- 图表区：柱状图+折线图在上，饼图在下 -->
         <div class="grid grid-cols-2 gap-4 mb-5">
             <div class="card p-4">
                 <h4 class="text-xs text-gray-500 mb-2 font-semibold">收入·支出·毛利率</h4>
-                <canvas id="bizRptIncomeChart" height="180"></canvas>
-            </div>
-            <div class="card p-4">
-                <h4 class="text-xs text-gray-500 mb-2 font-semibold">成本结构占比</h4>
-                <canvas id="bizRptCostChart" height="180"></canvas>
+                <canvas id="bizRptIncomeChart" height="200"></canvas>
             </div>
             <div class="card p-4">
                 <h4 class="text-xs text-gray-500 mb-2 font-semibold">车次变化（本月 vs 上月）</h4>
-                <canvas id="bizRptTripsChart" height="180"></canvas>
+                <canvas id="bizRptTripsChart" height="200"></canvas>
+            </div>
+            <div class="card p-4">
+                <h4 class="text-xs text-gray-500 mb-2 font-semibold">成本结构占比</h4>
+                <canvas id="bizRptCostChart" height="200"></canvas>
             </div>
             <div class="card p-4">
                 <h4 class="text-xs text-gray-500 mb-2 font-semibold">各项目收入占比</h4>
-                <canvas id="bizRptIncomePieChart" height="180"></canvas>
+                <canvas id="bizRptIncomePieChart" height="200"></canvas>
             </div>
         </div>
             </div><!-- end bizreport-section -->
@@ -3864,36 +3864,62 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                 }
             });
         }
-        // 绘制饼图标签（名称 + 百分比）
+        // 绘制饼图标签（名称 + 百分比），小扇区外置标签
         function drawPieLabels(chart, ctx) {
             const ds = chart.data.datasets[0];
             const total = ds.data.reduce((a,v)=>a+v,0);
             if (!total) return;
             chart.data.labels.forEach((label, i) => {
                 const val = ds.data[i];
-                if (!val) return;
+                if (val === undefined || val === null) return;
                 const meta = chart.getDatasetMeta(0);
                 const arc = meta.data[i];
                 const mid = arc.startAngle + (arc.endAngle - arc.startAngle) / 2;
-                const r = (arc.innerRadius + arc.outerRadius) / 2;
-                const x = arc.x + Math.cos(mid) * r;
-                const y = arc.y + Math.sin(mid) * r;
-                const pct = (val / total * 100).toFixed(1) + '%';
+                const pct = total > 0 ? (val / total * 100).toFixed(1) + '%' : '0%';
+                const pctNum = parseFloat(pct);
+                const innerR = arc.innerRadius || 0;
+                const outerR = arc.outerRadius;
+                // 小扇区（<6%或角度<0.4 rad）标签移到外部
+                const arcSize = arc.endAngle - arc.startAngle;
+                const isSmall = pctNum < 6 && pctNum > 0 || arcSize < 0.4;
                 ctx.save();
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                // 名称行（上方）
-                ctx.font = 'bold 10px sans-serif';
-                ctx.fillStyle = '#1f2937';
-                ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-                ctx.lineWidth = 3;
-                ctx.strokeText(label, x, y - 8);
-                ctx.fillText(label, x, y - 8);
-                // 百分比行（下方）
-                ctx.font = 'bold 13px sans-serif';
-                ctx.fillStyle = '#1f2937';
-                ctx.strokeText(pct, x, y + 8);
-                ctx.fillText(pct, x, y + 8);
+                if (isSmall) {
+                    // 外置标签：在饼图外侧画线引出
+                    const lx = arc.x + Math.cos(mid) * (outerR + 24);
+                    const ly = arc.y + Math.sin(mid) * (outerR + 24);
+                    const sx = arc.x + Math.cos(mid) * (outerR + 4);
+                    const sy = arc.y + Math.sin(mid) * (outerR + 4);
+                    ctx.beginPath();
+                    ctx.moveTo(arc.x + Math.cos(mid) * outerR, arc.y + Math.sin(mid) * outerR);
+                    ctx.lineTo(sx, sy);
+                    ctx.lineTo(lx, ly);
+                    ctx.strokeStyle = '#6b7280';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    ctx.font = '9px sans-serif';
+                    ctx.fillStyle = '#1f2937';
+                    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+                    ctx.lineWidth = 3;
+                    const shortLabel = label.length > 4 ? label.slice(0,4)+'..' : label;
+                    ctx.strokeText(shortLabel + ' ' + pct, lx, ly);
+                    ctx.fillText(shortLabel + ' ' + pct, lx, ly);
+                } else {
+                    const r = (innerR + outerR) / 2;
+                    const x = arc.x + Math.cos(mid) * r;
+                    const y = arc.y + Math.sin(mid) * r;
+                    ctx.font = 'bold 10px sans-serif';
+                    ctx.fillStyle = '#1f2937';
+                    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+                    ctx.lineWidth = 3;
+                    ctx.strokeText(label, x, y - 8);
+                    ctx.fillText(label, x, y - 8);
+                    ctx.font = 'bold 13px sans-serif';
+                    ctx.fillStyle = '#1f2937';
+                    ctx.strokeText(pct, x, y + 8);
+                    ctx.fillText(pct, x, y + 8);
+                }
                 ctx.restore();
             });
         }
@@ -3969,15 +3995,16 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
             const totalRent     = rows.reduce((a,r)=>a+(r.rent||0),0);
             const totalLoading  = rows.reduce((a,r)=>a+(r.loading||0),0);
             const totalPlatform = rows.reduce((a,r)=>a+(r.platform||0),0);
+            const totalPersonnel= rows.reduce((a,r)=>a+(r.personnel||0),0);
             if (bizRptCostPieChart) bizRptCostPieChart.destroy();
             const c2 = document.getElementById('bizRptCostChart');
             if (c2) {
                 bizRptCostPieChart = new Chart(c2, {
                     type: 'pie',
                     data: {
-                        labels: ['司机运费','电补','高速费','车租','装卸费','平台服务费'],
-                        datasets: [{ data: [totalDriver,totalElectric,totalToll,totalRent,totalLoading,totalPlatform],
-                            backgroundColor: ['#9f1239','#3b82f6','#10b981','#f97316','#8b5cf6','#eab308'] }]
+                        labels: ['司机运费','电补','高速费','车租','装卸费','平台服务费','人员成本'],
+                        datasets: [{ data: [totalDriver,totalElectric,totalToll,totalRent,totalLoading,totalPlatform,totalPersonnel],
+                            backgroundColor: ['#9f1239','#3b82f6','#10b981','#f97316','#8b5cf6','#eab308','#06b6d4'] }]
                     },
                     options: {
                         responsive:true,
@@ -4175,8 +4202,8 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
             <div class="section-title">图表分析</div>
             <div class="chart-grid">
                 ${b64Income?`<div class="chart-box"><h4>收入·支出·毛利率</h4><img src="${b64Income}"/></div>`:''}
-                ${b64Cost?`<div class="chart-box"><h4>成本结构占比</h4><img src="${b64Cost}"/></div>`:''}
                 ${b64Trips?`<div class="chart-box"><h4>车次变化（本月 vs 上月）</h4><img src="${b64Trips}"/></div>`:''}
+                ${b64Cost?`<div class="chart-box"><h4>成本结构占比</h4><img src="${b64Cost}"/></div>`:''}
                 ${b64IncPie?`<div class="chart-box"><h4>各项目收入占比</h4><img src="${b64IncPie}"/></div>`:''}
             </div>`:''}
             <div id="pdf-action-bar" style="position:fixed;bottom:24px;right:24px;display:flex;gap:10px;z-index:9999">
