@@ -701,6 +701,7 @@
             </div>
             <div class="flex items-center gap-2">
                 <button onclick="bizRptSaveData()" class="text-xs px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-700"><i class="fas fa-save mr-1"></i>保存数据</button>
+                <button onclick="bizRptLoadSnapshot()" class="text-xs px-3 py-1.5 rounded bg-teal-600 text-white hover:bg-teal-700"><i class="fas fa-history mr-1"></i>历史记录</button>
                 <button onclick="exportBizReport()" class="text-xs px-3 py-1.5 rounded bg-indigo-600 text-white hover:bg-indigo-700"><i class="fas fa-file-pdf mr-1"></i>导出月报</button>
             </div>
         </div>
@@ -3521,12 +3522,114 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
             renderBizReport();
         }
 
-        // 保存数据到 localStorage
+        // 保存数据到 localStorage（同时生成快照）
         function bizRptSaveData() {
-            // 先从表格读取当前编辑值
             bizRptReadTableValues();
             localStorage.setItem('hengbing_bizreport', JSON.stringify(bizReportData));
+            // 自动创建快照
+            bizRptAutoSnapshot();
             showToast('经营分析数据已保存', 'success');
+        }
+
+        // 快照管理
+        function bizRptGetSnapshots() {
+            return JSON.parse(localStorage.getItem('hengbing_bizreport_snapshots') || '[]');
+        }
+        function bizRptSetSnapshots(list) {
+            localStorage.setItem('hengbing_bizreport_snapshots', JSON.stringify(list));
+        }
+        function bizRptAutoSnapshot() {
+            const month = bizRptGetMonth();
+            const rows = bizReportData[month] || [];
+            if (!rows.length) return;
+            const snaps = bizRptGetSnapshots();
+            const now = new Date();
+            const name = `${month} 保存数据${snaps.filter(s=>s.month===month).length+1}`;
+            snaps.unshift({
+                id: Date.now().toString(),
+                name: name,
+                month: month,
+                time: now.toLocaleString('zh-CN'),
+                data: JSON.parse(JSON.stringify(rows))
+            });
+            if (snaps.length > 50) snaps.length = 50; // 最多保留50条
+            bizRptSetSnapshots(snaps);
+        }
+        // 手动命名快照
+        function bizRptSaveNamedSnapshot() {
+            bizRptReadTableValues();
+            const month = bizRptGetMonth();
+            const rows = bizReportData[month] || [];
+            if (!rows.length) { showToast('当前月份无数据', 'warn'); return; }
+            const defaultName = `${month} 自定义快照`;
+            const name = prompt('请输入快照名称：', defaultName);
+            if (!name) return;
+            const snaps = bizRptGetSnapshots();
+            snaps.unshift({
+                id: Date.now().toString(),
+                name: name.trim(),
+                month: month,
+                time: new Date().toLocaleString('zh-CN'),
+                data: JSON.parse(JSON.stringify(rows))
+            });
+            if (snaps.length > 50) snaps.length = 50;
+            bizRptSetSnapshots(snaps);
+            showToast('快照已保存：' + name.trim(), 'success');
+        }
+        // 加载快照弹窗
+        function bizRptLoadSnapshot() {
+            const snaps = bizRptGetSnapshots();
+            if (!snaps.length) { showToast('暂无历史记录', 'warn'); return; }
+            const month = bizRptGetMonth();
+            const monthSnaps = snaps.filter(s => s.month === month);
+            if (!monthSnaps.length) { showToast('当前月份暂无历史记录', 'warn'); return; }
+
+            const listHtml = monthSnaps.map((s, i) => `
+                <div class="flex items-center justify-between p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer" onclick="bizRptApplySnapshot('${s.id}')">
+                    <div>
+                        <div class="font-medium text-sm text-gray-800">${s.name}</div>
+                        <div class="text-xs text-gray-400">${s.time}</div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="event.stopPropagation();bizRptApplySnapshot('${s.id}')" class="text-xs px-2 py-1 rounded bg-indigo-50 text-indigo-600 hover:bg-indigo-100">加载</button>
+                        <button onclick="event.stopPropagation();bizRptDeleteSnapshot('${s.id}')" class="text-xs px-2 py-1 rounded bg-red-50 text-red-500 hover:bg-red-100">删除</button>
+                    </div>
+                </div>
+            `).join('');
+
+            const modal = document.createElement('div');
+            modal.id = 'biz-snapshot-modal';
+            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col">
+                    <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                        <h3 class="font-bold text-gray-800">📋 ${month} 历史记录</h3>
+                        <button onclick="document.getElementById('biz-snapshot-modal').remove()" class="text-gray-400 hover:text-gray-600 text-lg">&times;</button>
+                    </div>
+                    <div class="p-2 overflow-y-auto flex-1">${listHtml}</div>
+                    <div class="p-3 border-t border-gray-200 text-center text-xs text-gray-400">点击列表项或“加载”按钮恢复数据</div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        function bizRptApplySnapshot(id) {
+            const snaps = bizRptGetSnapshots();
+            const snap = snaps.find(s => s.id === id);
+            if (!snap) { showToast('快照不存在', 'warn'); return; }
+            if (!confirm(`确定加载快照【${snap.name}】？\n当前未保存的数据将丢失。`)) return;
+            const month = bizRptGetMonth();
+            bizReportData[month] = JSON.parse(JSON.stringify(snap.data));
+            localStorage.setItem('hengbing_bizreport', JSON.stringify(bizReportData));
+            renderBizReport();
+            document.getElementById('biz-snapshot-modal')?.remove();
+            showToast('已加载：' + snap.name, 'success');
+        }
+        function bizRptDeleteSnapshot(id) {
+            if (!confirm('确定删除该快照？')) return;
+            let snaps = bizRptGetSnapshots();
+            snaps = snaps.filter(s => s.id !== id);
+            bizRptSetSnapshots(snaps);
+            bizRptLoadSnapshot(); // 刷新弹窗
         }
 
         // 从表格 DOM 读取当前所有值写回数据
@@ -3736,10 +3839,11 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                         if (val === null || val === undefined) return;
                         ctx.save();
                         ctx.font = 'bold 10px sans-serif';
-                        ctx.fillStyle = '#059669';
+                        ctx.fillStyle = val < 0 ? '#dc2626' : '#059669';
                         ctx.textAlign = 'center';
-                        ctx.textBaseline = 'bottom';
-                        ctx.fillText(val.toFixed(1) + '%', pt.x, pt.y - 8);
+                        ctx.textBaseline = val < 0 ? 'top' : 'bottom';
+                        const offset = val < 0 ? 10 : -8;
+                        ctx.fillText(val.toFixed(1) + '%', pt.x, pt.y + offset);
                         ctx.restore();
                     });
                 } else {
@@ -3850,7 +3954,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                         },
                         scales:{
                             y: { position:'left', title:{ display:true, text:'金额（元）', font:{ size:10 } }, ticks:{ font:{ size:10 }, callback:(v)=>v>=10000?(v/10000)+'w':v } },
-                            y1: { position:'right', title:{ display:true, text:'毛利率(%)', font:{ size:10 } }, ticks:{ font:{ size:10 }, callback:(v)=>v+'%' }, grid:{ drawOnChartArea:false }, beginAtZero: false, min: minMargin < -5 ? undefined : (minMargin < 0 ? minMargin * 2 : 0), suggestedMin: minMargin < 0 ? minMargin - 5 : 0 }
+                            y1: { position:'right', title:{ display:true, text:'毛利率(%)', font:{ size:10 } }, ticks:{ font:{ size:10 }, callback:(v)=>v+'%' }, grid:{ drawOnChartArea:false }, beginAtZero: false, min: minMargin < 0 ? Math.floor(minMargin - 5) : 0, suggestedMin: minMargin < 0 ? Math.floor(minMargin - 5) : 0 }
                         },
                         animation: { onComplete: function() { drawComboLabels(this, this.ctx); } }
                     }
@@ -3872,7 +3976,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                     data: {
                         labels: ['司机运费','电补','高速费','车租','装卸费','平台服务费'],
                         datasets: [{ data: [totalDriver,totalElectric,totalToll,totalRent,totalLoading,totalPlatform],
-                            backgroundColor: ['#9f1239','#3b82f6','#10b981','#f97316','#8b5cf6','#f59e0b'] }]
+                            backgroundColor: ['#9f1239','#3b82f6','#10b981','#f97316','#8b5cf6','#eab308'] }]
                     },
                     options: {
                         responsive:true,
@@ -4079,9 +4183,22 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                 <button id="download-pdf-btn" style="background:#dc2626;color:#fff;border:none;padding:12px 22px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)">📥 下载PDF文件</button>
             </div>
             <script>
+            // 预加载PDF组件
+            function loadScript(src) {
+                return new Promise(function(resolve, reject) {
+                    var s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = reject;
+                    document.head.appendChild(s);
+                });
+            }
+            var pdfReady = false;
+            Promise.all([
+                loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'),
+                loadScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js')
+            ]).then(function() { pdfReady = true; });
+
             document.getElementById('download-pdf-btn').addEventListener('click', function() {
-                if (typeof html2canvas === 'undefined') {
-                    alert('PDF组件正在加载中，请稍候再试，或使用左侧"打印/另存为PDF"按钮');
+                if (!pdfReady || typeof html2canvas === 'undefined' || typeof jspdf === 'undefined') {
+                    alert('PDF组件加载中，请稍候 2-3 秒再试');
                     return;
                 }
                 this.textContent = '⏳ 生成中...'; this.disabled = true;
@@ -4100,7 +4217,8 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                     pdf.save('经营分析报告_${month}.pdf');
                     document.getElementById('download-pdf-btn').textContent = '✅ 下载完成';
                     setTimeout(function(){ document.getElementById('download-pdf-btn').textContent = '📥 下载PDF文件'; document.getElementById('download-pdf-btn').disabled = false; }, 2000);
-                }).catch(function() {
+                }).catch(function(err) {
+                    console.error('PDF生成失败', err);
                     alert('PDF生成失败，请使用左侧"打印/另存为PDF"按钮（Ctrl+P → 另存为PDF）');
                     document.getElementById('download-pdf-btn').textContent = '📥 下载PDF文件'; document.getElementById('download-pdf-btn').disabled = false;
                 });
