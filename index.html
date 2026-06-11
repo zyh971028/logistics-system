@@ -4156,11 +4156,11 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                 th{background:#1d4ed8;color:#fff;padding:5px 4px;text-align:center;white-space:nowrap}
                 td{padding:4px;border-bottom:1px solid #f1f5f9;text-align:center;white-space:nowrap}
                 tr:nth-child(even) td{background:#f9fafb}
-                .chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px}
-                .chart-box{border:1px solid #e5e7eb;border-radius:6px;padding:12px}
+                .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+                .chart-box{border:1px solid #e5e7eb;border-radius:6px;padding:12px;break-inside:avoid}
                 .chart-box h4{font-size:11px;color:#6b7280;margin-bottom:8px;font-weight:600}
                 .chart-box img{width:100%;height:auto}
-                @media print{body{padding:10px}.print-hint{display:none!important}.editable-subtitle{border-bottom:none!important}#pdf-action-bar{display:none!important}}
+                @media print{body{padding:10px}.print-hint{display:none!important}.editable-subtitle{border-bottom:none!important}#pdf-action-bar{display:none!important}.chart-box{break-inside:avoid;page-break-inside:avoid}}
             </style></head><body>
             <div class="report-header">
                 <h1>合同物流 · 月度经营分析报告</h1>
@@ -4201,10 +4201,13 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                 </tr></tfoot>
             </table>
             ${(b64Income||b64Cost||b64Trips||b64IncPie)?`
-            <div class="section-title">图表分析</div>
-            <div class="chart-grid">
+            <div class="section-title" style="margin-top:8px">图表分析</div>
+            <p style="margin:0 0 12px;color:#9ca3af;font-size:10px;text-align:center">收入与车次（上）&nbsp;&nbsp;|&nbsp;&nbsp;成本与收入占比（下）</p>
+            <div class="chart-row">
                 ${b64Income?`<div class="chart-box"><h4>收入·支出·毛利率</h4><img src="${b64Income}"/></div>`:''}
                 ${b64Trips?`<div class="chart-box"><h4>车次变化（本月 vs 上月）</h4><img src="${b64Trips}"/></div>`:''}
+            </div>
+            <div class="chart-row" style="margin-top:28px">
                 ${b64Cost?`<div class="chart-box"><h4>成本结构占比</h4><img src="${b64Cost}"/></div>`:''}
                 ${b64IncPie?`<div class="chart-box"><h4>各项目收入占比</h4><img src="${b64IncPie}"/></div>`:''}
             </div>`:''}
