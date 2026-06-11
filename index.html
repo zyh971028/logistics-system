@@ -451,9 +451,10 @@
                                                 <th class="text-right">上月发车</th><th class="text-right">当月发车</th><th class="text-right">车次变化</th>
                                                 <th class="text-right">上月收入</th><th class="text-right">当月收入</th><th class="text-right">单趟均收</th><th class="text-right">收入变化</th>
                                                 <th class="text-right">上月支出</th><th class="text-right">当月支出</th><th class="text-right">支出变化</th>
-                                                <th class="text-right">毛利</th><th class="text-right">毛利率</th>
                                                 <th class="text-right">司机运费</th><th class="text-right">电补</th><th class="text-right">高速费</th>
                                                 <th class="text-right">车租</th><th class="text-right">装卸费</th><th class="text-right">平台服务费</th>
+                                                <th class="text-right">项目人员成本</th>
+                                                <th class="text-right">毛利</th><th class="text-right">毛利率</th>
                                                 <th class="text-right">在用车辆</th><th class="text-right">实际运营车辆</th>
                                             </tr>
                                         </thead>
@@ -3720,8 +3721,6 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                     <td class="py-1 px-2 text-right">${numInput('lastExpense', row.lastExpense)}</td>
                     <td class="py-1 px-2 text-right">${numInput('expense', row.expense)}</td>
                     <td class="py-1 px-2 text-center">${bizRptFmtChange(row.expense, row.lastExpense)}</td>
-                    <td class="py-1 px-2 text-right font-semibold ${gross>=0?'text-green-700':'text-red-600'}">${gross.toLocaleString()}</td>
-                    <td class="py-1 px-2 text-right font-semibold ${parseFloat(grossRate)>=0?'text-green-700':'text-red-600'}">${grossRate}%</td>
                     <td class="py-1 px-2 text-right">${numInput('driver', row.driver)}</td>
                     <td class="py-1 px-2 text-right">${numInput('electric', row.electric)}</td>
                     <td class="py-1 px-2 text-right">${numInput('toll', row.toll)}</td>
@@ -3729,6 +3728,8 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                     <td class="py-1 px-2 text-right">${numInput('loading', row.loading)}</td>
                     <td class="py-1 px-2 text-right">${numInput('platform', row.platform)}</td>
                     <td class="py-1 px-2 text-right">${numInput('personnel', row.personnel)}</td>
+                    <td class="py-1 px-2 text-right font-semibold ${gross>=0?'text-green-700':'text-red-600'}">${gross.toLocaleString()}</td>
+                    <td class="py-1 px-2 text-right font-semibold ${parseFloat(grossRate)>=0?'text-green-700':'text-red-600'}">${grossRate}%</td>
                     <td class="py-1 px-2 text-right">${numInput('inUse', row.inUse)}</td>
                     <td class="py-1 px-2 text-right">${numInput('operating', row.operating)}</td>
                     <td class="py-1 px-2 text-center"><button onclick="bizRptDeleteRow(${i})" class="text-red-400 hover:text-red-600 text-xs"><i class="fas fa-trash"></i></button></td>
@@ -3755,8 +3756,6 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                 <td class="py-2 px-2 text-right">${tLastExpense.toLocaleString()}</td>
                 <td class="py-2 px-2 text-right">${tExpense.toLocaleString()}</td>
                 <td class="py-2 px-2 text-center">${bizRptFmtChange(tExpense, tLastExpense)}</td>
-                <td class="py-2 px-2 text-right ${tGross>=0?'text-green-700':'text-red-600'}">${tGross.toLocaleString()}</td>
-                <td class="py-2 px-2 text-right ${parseFloat(tRate)>=0?'text-green-700':'text-red-600'}">${tRate}%</td>
                 <td class="py-2 px-2 text-right">${sum('driver').toLocaleString()}</td>
                 <td class="py-2 px-2 text-right">${sum('electric').toLocaleString()}</td>
                 <td class="py-2 px-2 text-right">${sum('toll').toLocaleString()}</td>
@@ -3764,6 +3763,8 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                 <td class="py-2 px-2 text-right">${sum('loading').toLocaleString()}</td>
                 <td class="py-2 px-2 text-right">${sum('platform').toLocaleString()}</td>
                 <td class="py-2 px-2 text-right">${sum('personnel').toLocaleString()}</td>
+                <td class="py-2 px-2 text-right ${tGross>=0?'text-green-700':'text-red-600'}">${tGross.toLocaleString()}</td>
+                <td class="py-2 px-2 text-right ${parseFloat(tRate)>=0?'text-green-700':'text-red-600'}">${tRate}%</td>
                 <td class="py-2 px-2 text-right">${sum('inUse')}</td>
                 <td class="py-2 px-2 text-right">${sum('operating')}</td>
                 <td></td>
@@ -3793,15 +3794,15 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
             const grossRate = row.income > 0 ? (gross/row.income*100).toFixed(1) : '0.0';
             const avgIncome = row.trips > 0 ? (row.income/row.trips).toFixed(0) : '0';
             const tds = tr.querySelectorAll('td');
-            // col indices: 0=type,1=name,2=lastTrips,3=trips,4=change,5=lastIncome,6=income,7=avg,8=incChange,9=lastExpense,10=expense,11=expChange,12=gross,13=grossRate,...
+            // col indices: 0=type,1=name,2=lastTrips,3=trips,4=change,5=lastIncome,6=income,7=avg,8=incChange,9=lastExpense,10=expense,11=expChange,12=driver,13=electric,14=toll,15=rent,16=loading,17=platform,18=personnel,19=gross,20=grossRate,21=inUse,22=operating,23=del
             tds[4].innerHTML = bizRptFmtChange(row.trips, row.lastTrips);
             tds[7].textContent = avgIncome;
             tds[8].innerHTML = bizRptFmtChange(row.income, row.lastIncome);
             tds[11].innerHTML = bizRptFmtChange(row.expense, row.lastExpense);
-            tds[12].className = `py-1 px-2 text-right font-semibold ${gross>=0?'text-green-700':'text-red-600'}`;
-            tds[12].textContent = gross.toLocaleString();
-            tds[13].className = `py-1 px-2 text-right font-semibold ${parseFloat(grossRate)>=0?'text-green-700':'text-red-600'}`;
-            tds[13].textContent = grossRate + '%';
+            tds[19].className = `py-1 px-2 text-right font-semibold ${gross>=0?'text-green-700':'text-red-600'}`;
+            tds[19].textContent = gross.toLocaleString();
+            tds[20].className = `py-1 px-2 text-right font-semibold ${parseFloat(grossRate)>=0?'text-green-700':'text-red-600'}`;
+            tds[20].textContent = grossRate + '%';
             // 更新合计行
             const sum = (k) => rows.reduce((a,r) => a+(parseFloat(r[k])||0), 0);
             const tIncome = sum('income'), tLastIncome = sum('lastIncome');
@@ -3810,7 +3811,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
             const tGross = tIncome - tExpense;
             const tRate = tIncome > 0 ? (tGross/tIncome*100).toFixed(1) : '0.0';
             const ftds = document.querySelectorAll('#bizRptFoot tr td');
-            if (ftds.length > 13) {
+            if (ftds.length > 19) {
                 ftds[2].textContent = tLastTrips;
                 ftds[3].textContent = tTrips;
                 ftds[4].innerHTML = bizRptFmtChange(tTrips, tLastTrips);
@@ -3821,10 +3822,10 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                 ftds[9].textContent = tLastExpense.toLocaleString();
                 ftds[10].textContent = tExpense.toLocaleString();
                 ftds[11].innerHTML = bizRptFmtChange(tExpense, tLastExpense);
-                ftds[12].className = `py-2 px-2 text-right ${tGross>=0?'text-green-700':'text-red-600'}`;
-                ftds[12].textContent = tGross.toLocaleString();
-                ftds[13].className = `py-2 px-2 text-right ${parseFloat(tRate)>=0?'text-green-700':'text-red-600'}`;
-                ftds[13].textContent = tRate + '%';
+                ftds[19].className = `py-2 px-2 text-right ${tGross>=0?'text-green-700':'text-red-600'}`;
+                ftds[19].textContent = tGross.toLocaleString();
+                ftds[20].className = `py-2 px-2 text-right ${parseFloat(tRate)>=0?'text-green-700':'text-red-600'}`;
+                ftds[20].textContent = tRate + '%';
             }
         }
 
@@ -4076,11 +4077,11 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                     <td>${fmtN(r.lastIncome)}</td><td>${fmtN(r.income)}</td>
                     <td>${r.trips>0?fmtN(r.income/r.trips):0}</td><td>${chg(r.income,r.lastIncome)}</td>
                     <td>${fmtN(r.lastExpense)}</td><td>${fmtN(r.expense)}</td><td>${chg(r.expense,r.lastExpense)}</td>
-                    <td style="color:${g>=0?'#059669':'#dc2626'};font-weight:700">${fmtN(g)}</td>
-                    <td style="color:${parseFloat(gr)>=0?'#059669':'#dc2626'};font-weight:700">${gr}%</td>
                     <td>${fmtN(r.driver)}</td><td>${fmtN(r.electric)}</td><td>${fmtN(r.toll)}</td>
                     <td>${fmtN(r.rent)}</td><td>${fmtN(r.loading)}</td><td>${fmtN(r.platform)}</td>
                     <td>${fmtN(r.personnel)}</td>
+                    <td style="color:${g>=0?'#059669':'#dc2626'};font-weight:700">${fmtN(g)}</td>
+                    <td style="color:${parseFloat(gr)>=0?'#059669':'#dc2626'};font-weight:700">${gr}%</td>
                     <td>${r.inUse||0}</td><td>${r.operating||0}</td>
                 </tr>`;
             }).join('');
@@ -4130,7 +4131,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                 .chart-box{border:1px solid #e5e7eb;border-radius:6px;padding:12px}
                 .chart-box h4{font-size:11px;color:#6b7280;margin-bottom:8px;font-weight:600}
                 .chart-box img{width:100%;height:auto}
-                @media print{body{padding:10px}.print-hint{display:none!important}.editable-subtitle{border-bottom:none!important}}
+                @media print{body{padding:10px}.print-hint{display:none!important}.editable-subtitle{border-bottom:none!important}#pdf-action-bar{display:none!important}}
             </style></head><body>
             <div class="report-header">
                 <h1>合同物流 · 月度经营分析报告</h1>
@@ -4152,8 +4153,8 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                     <th>类型</th><th>项目</th><th>上月发车</th><th>当月发车</th><th>车次变化</th>
                     <th>上月收入</th><th>当月收入</th><th>单趟均收</th><th>收入变化</th>
                     <th>上月支出</th><th>当月支出</th><th>支出变化</th>
-                    <th>毛利</th><th>毛利率</th>
                     <th>司机运费</th><th>电补</th><th>高速费</th><th>车租</th><th>装卸费</th><th>平台服务费</th><th>人员成本</th>
+                    <th>毛利</th><th>毛利率</th>
                     <th>在用车</th><th>运营车</th>
                 </tr></thead>
                 <tbody>${tableRows}</tbody>
@@ -4162,11 +4163,11 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                     <td>${sum('lastTrips')}</td><td>${tTrips}</td><td>-</td>
                     <td>${fmtN(sum('lastIncome'))}</td><td>${fmtN(tIncome)}</td><td>${tTrips>0?fmtN(tIncome/tTrips):0}</td><td>-</td>
                     <td>${fmtN(sum('lastExpense'))}</td><td>${fmtN(tExpense)}</td><td>-</td>
-                    <td style="color:${tGross>=0?'#059669':'#dc2626'}">${fmtN(tGross)}</td>
-                    <td style="color:${parseFloat(tRate)>=0?'#059669':'#dc2626'}">${tRate}%</td>
                     <td>${fmtN(sum('driver'))}</td><td>${fmtN(sum('electric'))}</td><td>${fmtN(sum('toll'))}</td>
                     <td>${fmtN(sum('rent'))}</td><td>${fmtN(sum('loading'))}</td><td>${fmtN(sum('platform'))}</td>
                     <td>${fmtN(sum('personnel'))}</td>
+                    <td style="color:${tGross>=0?'#059669':'#dc2626'}">${fmtN(tGross)}</td>
+                    <td style="color:${parseFloat(tRate)>=0?'#059669':'#dc2626'}">${tRate}%</td>
                     <td>${sum('inUse')}</td><td>${sum('operating')}</td>
                 </tr></tfoot>
             </table>
@@ -4178,7 +4179,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                 ${b64Trips?`<div class="chart-box"><h4>车次变化（本月 vs 上月）</h4><img src="${b64Trips}"/></div>`:''}
                 ${b64IncPie?`<div class="chart-box"><h4>各项目收入占比</h4><img src="${b64IncPie}"/></div>`:''}
             </div>`:''}
-            <div style="position:fixed;bottom:24px;right:24px;display:flex;gap:10px;z-index:9999">
+            <div id="pdf-action-bar" style="position:fixed;bottom:24px;right:24px;display:flex;gap:10px;z-index:9999">
                 <button onclick="window.print()" style="background:#4f46e5;color:#fff;border:none;padding:12px 22px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)">🖨️ 打印 / 另存为PDF</button>
                 <button id="download-pdf-btn" style="background:#dc2626;color:#fff;border:none;padding:12px 22px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)">📥 下载PDF文件</button>
             </div>
@@ -4201,8 +4202,13 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                     alert('PDF组件加载中，请稍候 2-3 秒再试');
                     return;
                 }
-                this.textContent = '⏳ 生成中...'; this.disabled = true;
-                html2canvas(document.body, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(function(canvas) {
+                var btn = this;
+                btn.textContent = '⏳ 生成中...'; btn.disabled = true;
+                // 截图前隐藏按钮栏，截图后恢复
+                var bar = document.getElementById('pdf-action-bar');
+                if (bar) bar.style.display = 'none';
+                html2canvas(document.body, { scale: 3, useCORS: true, backgroundColor: '#ffffff', logging: false }).then(function(canvas) {
+                    if (bar) bar.style.display = 'flex';
                     var imgData = canvas.toDataURL('image/png');
                     var pdf = new jspdf.jsPDF('l', 'mm', 'a4');
                     var w = pdf.internal.pageSize.getWidth();
@@ -4215,12 +4221,13 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                         if (pos < h) pdf.addPage();
                     }
                     pdf.save('经营分析报告_${month}.pdf');
-                    document.getElementById('download-pdf-btn').textContent = '✅ 下载完成';
-                    setTimeout(function(){ document.getElementById('download-pdf-btn').textContent = '📥 下载PDF文件'; document.getElementById('download-pdf-btn').disabled = false; }, 2000);
+                    btn.textContent = '✅ 下载完成';
+                    setTimeout(function(){ btn.textContent = '📥 下载PDF文件'; btn.disabled = false; }, 2000);
                 }).catch(function(err) {
+                    if (bar) bar.style.display = 'flex';
                     console.error('PDF生成失败', err);
                     alert('PDF生成失败，请使用左侧"打印/另存为PDF"按钮（Ctrl+P → 另存为PDF）');
-                    document.getElementById('download-pdf-btn').textContent = '📥 下载PDF文件'; document.getElementById('download-pdf-btn').disabled = false;
+                    btn.textContent = '📥 下载PDF文件'; btn.disabled = false;
                 });
             });
             <\/script>
