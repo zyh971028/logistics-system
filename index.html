@@ -3942,7 +3942,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
         }
 
         // 渲染经营分析图表
-        function bizRptRenderCharts(rows) {
+        function bizRptRenderCharts(rows, opts = {}) {
             const names = rows.map(r => r.name || '未命名');
 
             // 1. 收入·支出·毛利率组合图（收入/支出柱状 + 毛利率折线）
@@ -3983,12 +3983,10 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                             y: { position:'left', title:{ display:true, text:'金额（元）', font:{ size:10 } }, ticks:{ font:{ size:10 }, callback:(v)=>v>=10000?(v/10000)+'w':v } },
                             y1: { position:'right', title:{ display:true, text:'毛利率(%)', font:{ size:10 } }, ticks:{ font:{ size:10 }, callback:(v)=>v+'%' }, grid:{ drawOnChartArea:false }, beginAtZero: false, min: minMargin < 0 ? Math.floor(minMargin - 5) : 0, suggestedMin: minMargin < 0 ? Math.floor(minMargin - 5) : 0 }
                         },
-                        animation: { onComplete: function() { drawComboLabels(this, this.ctx); } }
+                        animation: opts.noAnimation ? false : { onComplete: function() { drawComboLabels(this, this.ctx); } }
                     }
                 });
             }
-
-            // 2. 成本结构饼图（合计）
             const totalDriver   = rows.reduce((a,r)=>a+(r.driver||0),0);
             const totalElectric = rows.reduce((a,r)=>a+(r.electric||0),0);
             const totalToll     = rows.reduce((a,r)=>a+(r.toll||0),0);
@@ -4017,7 +4015,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                                 }
                             }
                         },
-                        animation: { onComplete: function() { drawPieLabels(this, this.ctx); } }
+                        animation: opts.noAnimation ? false : { onComplete: function() { drawPieLabels(this, this.ctx); } }
                     }
                 });
             }
@@ -4041,7 +4039,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                         responsive:true,
                         plugins:{ legend:{ labels:{ font:{ size:11 } } }, tooltip:{ mode:'index', intersect:false } },
                         scales:{ y:{ ticks:{ font:{ size:10 }, stepSize:1 }, beginAtZero:true }, x:{ ticks:{ font:{ size:10 } } } },
-                        animation: { onComplete: function() { drawLineLabels(this, this.ctx); } }
+                        animation: opts.noAnimation ? false : { onComplete: function() { drawLineLabels(this, this.ctx); } }
                     }
                 });
             }
@@ -4070,7 +4068,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                                 }
                             }
                         },
-                        animation: { onComplete: function() { drawPieLabels(this, this.ctx); } }
+                        animation: opts.noAnimation ? false : { onComplete: function() { drawPieLabels(this, this.ctx); } }
                     }
                 });
             }
@@ -4118,9 +4116,9 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
             bizRptReadTableValues();
             const currentRows = bizReportData[month] || [];
             if (currentRows.length) {
-                bizRptRenderCharts(currentRows);
-                await new Promise(r => setTimeout(r, 900));
-                // 手动绘制标签确保 toDataURL 能捕获（animation.onComplete 在导出场景可能未触发）
+                bizRptRenderCharts(currentRows, { noAnimation: true });
+                await new Promise(r => setTimeout(r, 300));
+                // 无动画模式下手动绘制标签
                 const charts = [
                     { c: bizRptIncomeChart,      fn: drawComboLabels },
                     { c: bizRptCostPieChart,     fn: drawPieLabels },
@@ -4128,6 +4126,8 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                     { c: bizRptIncomePieChart,   fn: drawPieLabels }
                 ];
                 charts.forEach(({c, fn}) => { if (c) { const c2 = c.ctx; c2 && fn(c, c2); } });
+                // 截图后再恢复动画模式
+                setTimeout(() => { bizRptRenderCharts(currentRows); }, 500);
             }
             // 获取图表截图
             const getB64 = (id) => { try { return document.getElementById(id)?.toDataURL('image/png')||''; } catch(e){ return ''; } };
@@ -4233,11 +4233,14 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                 }
                 var btn = this;
                 btn.textContent = '⏳ 生成中...'; btn.disabled = true;
-                // 截图前隐藏按钮栏，截图后恢复
+                // 截图前隐藏按钮栏和提示文字，截图后恢复
                 var bar = document.getElementById('pdf-action-bar');
+                var hint = document.querySelector('.print-hint');
                 if (bar) bar.style.display = 'none';
+                if (hint) hint.style.display = 'none';
                 html2canvas(document.body, { scale: 3, useCORS: true, backgroundColor: '#ffffff', logging: false }).then(function(canvas) {
                     if (bar) bar.style.display = 'flex';
+                    if (hint) hint.style.display = '';
                     var imgData = canvas.toDataURL('image/png');
                     var pdf = new jspdf.jsPDF('l', 'mm', 'a4');
                     var w = pdf.internal.pageSize.getWidth();
@@ -4254,6 +4257,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                     setTimeout(function(){ btn.textContent = '📥 下载PDF文件'; btn.disabled = false; }, 2000);
                 }).catch(function(err) {
                     if (bar) bar.style.display = 'flex';
+                    if (hint) hint.style.display = '';
                     console.error('PDF生成失败', err);
                     alert('PDF生成失败，请使用左侧"打印/另存为PDF"按钮（Ctrl+P → 另存为PDF）');
                     btn.textContent = '📥 下载PDF文件'; btn.disabled = false;
