@@ -4160,7 +4160,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                 .chart-box{border:1px solid #e5e7eb;border-radius:6px;padding:12px;break-inside:avoid}
                 .chart-box h4{font-size:11px;color:#6b7280;margin-bottom:8px;font-weight:600}
                 .chart-box img{width:100%;height:auto}
-                @media print{body{padding:10px}.print-hint{display:none!important}.editable-subtitle{border-bottom:none!important}#pdf-action-bar{display:none!important}.chart-box{break-inside:avoid;page-break-inside:avoid}}
+                @media print{@page{margin:0;size:A4}body{padding:16mm 8mm;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.print-hint{display:none!important}.editable-subtitle{border-bottom:none!important}#pdf-action-bar{display:none!important}.chart-box{break-inside:avoid;page-break-inside:avoid}}
             </style></head><body>
             <div class="report-header">
                 <h1>合同物流 · 月度经营分析报告</h1>
