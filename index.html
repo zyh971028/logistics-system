@@ -4004,7 +4004,8 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                     data: {
                         labels: ['司机运费','电补','高速费','车租','装卸费','平台服务费','人员成本'],
                         datasets: [{ data: [totalDriver,totalElectric,totalToll,totalRent,totalLoading,totalPlatform,totalPersonnel],
-                            backgroundColor: ['#9f1239','#3b82f6','#10b981','#f97316','#8b5cf6','#eab308','#06b6d4'] }]
+                            backgroundColor: ['#9f1239','#3b82f6','#10b981','#f97316','#8b5cf6','#eab308','#06b6d4'],
+                            borderWidth: 0 }]
                     },
                     options: {
                         responsive:true,
@@ -4056,7 +4057,8 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
                     data: {
                         labels: names,
                         datasets: [{ data: projectIncomes,
-                            backgroundColor: names.map((_,i)=>incomeColors[i%incomeColors.length]) }]
+                            backgroundColor: names.map((_,i)=>incomeColors[i%incomeColors.length]),
+                            borderWidth: 0 }]
                     },
                     options: {
                         responsive:true,
@@ -4117,7 +4119,7 @@ ${(imgIncome||imgProfit||imgTrips||imgCost)?`
             const currentRows = bizReportData[month] || [];
             if (currentRows.length) {
                 bizRptRenderCharts(currentRows);
-                await new Promise(r => setTimeout(r, 600));
+                await new Promise(r => setTimeout(r, 900));
                 // 手动绘制标签确保 toDataURL 能捕获（animation.onComplete 在导出场景可能未触发）
                 const charts = [
                     { c: bizRptIncomeChart,      fn: drawComboLabels },
